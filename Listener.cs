@@ -35,6 +35,19 @@ namespace SpeedwayClientWpf
             }
         }
 
+        public string Port
+        {
+            get
+            {
+                int i;
+                if (int.TryParse(_port, out i))
+                    return _port;
+
+                return "11000";
+            }
+            set { _port = value; }
+        }
+
         public Listener()
         {
             StartListeningCommand = new DelegateCommand(StartListening, () => !IsListening);
@@ -45,10 +58,11 @@ namespace SpeedwayClientWpf
 
         List<Socket> sockets = new List<Socket>();
         private string _ipAddress;
+        private string _port;
 
         public void StartListening()
         {
-            var localEp = new IPEndPoint(IPAddress.Parse(IpAddress), 11000);
+            var localEp = new IPEndPoint(IPAddress.Parse(IpAddress), int.Parse(Port));
             PushMessage("Local address and port : " + localEp);
 
             _listener = new TcpListener(localEp);
@@ -78,6 +92,7 @@ namespace SpeedwayClientWpf
                     }
 
                     _listener.Stop();
+                    sockets.Clear();
                     PushMessage("Listener stopped.");
                 }
                 catch (Exception e)
@@ -144,7 +159,7 @@ namespace SpeedwayClientWpf
         private static void PushMessage(string text, int type = 1)
         {
             App.Current.Dispatcher.Invoke(() =>
-                MainWindowViewModel.Instance.PushMessage(new Message(type, text)));
+                MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text)));
         }
 
         #region INotifyPropertyChanged

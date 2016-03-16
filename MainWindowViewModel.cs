@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -21,17 +22,19 @@ namespace SpeedwayClientWpf
       
         #endregion 
 
-
         #region Constructor
 
         public MainWindowViewModel()
         {
             listener = new Listener();
-            Messages = new ObservableCollection<Message>();
+            Messages = new ObservableCollection<LogMessage>();
+
+            ExitCommand = new DelegateCommand(() => Application.Current.Shutdown());
         }
 
 
         #endregion
+
         #region public members
         public static MainWindowViewModel Instance
         {
@@ -42,15 +45,17 @@ namespace SpeedwayClientWpf
         {
             get { return listener; }
         }
-        public void PushMessage(Message message)
+        public void PushMessage(LogMessage logMessage)
         {
-            Messages.Add(message);
+            Messages.Add(logMessage);
 
             if(Messages.Count > 100)
                 Messages.Clear();
         }
        
-        public ObservableCollection<Message> Messages { get; set; }
+        public ObservableCollection<LogMessage> Messages { get; set; }
+
+        public ICommand ExitCommand { get; set; }
 
         #endregion
 
@@ -65,12 +70,15 @@ namespace SpeedwayClientWpf
         #endregion
     }
 
-    public class Message
+    /// <summary>
+    /// Represents the object in log window
+    /// </summary>
+    public class LogMessage
     {
         public int Type { get; set; }
         public string Text { get; set; }
 
-        public Message(int type, string text)
+        public LogMessage(int type, string text)
         {
             Type = type;
             Text = string.Format("[{0}] {1}", DateTime.Now.ToLongTimeString(), text);
