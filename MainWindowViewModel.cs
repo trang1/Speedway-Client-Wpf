@@ -75,27 +75,36 @@ namespace SpeedwayClientWpf
     /// </summary>
     public class LogMessage
     {
-        public int Type { get; set; }
+        public LogMessageType Type { get; set; }
         public string Text { get; set; }
 
-        public LogMessage(int type, string text)
+        public LogMessage(LogMessageType type, string text)
         {
             Type = type;
             Text = string.Format("[{0}] {1}", DateTime.Now.ToLongTimeString(), text);
         }
     }
 
+    public enum LogMessageType
+    {
+        Listener = 1,
+        Error = 2
+    }
+
     public class TypeToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            int type;
-            if (int.TryParse(value.ToString(), out type))
+            LogMessageType type;
+            if (Enum.TryParse(value.ToString(), out type))
             {
-                if (type == 1)
-                    return new SolidColorBrush(Colors.BlueViolet);
-                if(type == 2)
-                    return new SolidColorBrush(Colors.Red);
+                switch(type)
+                {
+                    case LogMessageType.Listener:
+                        return new SolidColorBrush(Colors.BlueViolet);
+                    case LogMessageType.Error:
+                        return new SolidColorBrush(Colors.Red);
+                }
             }
             return new SolidColorBrush(Colors.Black);
         }

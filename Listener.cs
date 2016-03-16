@@ -97,7 +97,7 @@ namespace SpeedwayClientWpf
                 }
                 catch (Exception e)
                 {
-                    PushMessage("ERROR: " + e.Message, 2);
+                    PushMessage("ERROR: " + e.Message, LogMessageType.Error);
                     IsListening = false;
                 }
             }
@@ -153,13 +153,14 @@ namespace SpeedwayClientWpf
             }
             catch (Exception e)
             {
-                PushMessage("ERROR: " + e.Message, 2);
+                PushMessage("ERROR: " + e.Message, LogMessageType.Error);
             }
         }
-        private static void PushMessage(string text, int type = 1)
+        private static void PushMessage(string text, LogMessageType type = LogMessageType.Listener)
         {
             App.Current.Dispatcher.Invoke(() =>
-                MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text)));
+                MainWindowViewModel.Instance.PushMessage(
+                    new LogMessage(type, text)));
         }
 
         #region INotifyPropertyChanged
