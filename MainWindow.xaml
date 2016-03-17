@@ -2,11 +2,13 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:speedwayClientWpf="clr-namespace:SpeedwayClientWpf"
+        xmlns:viewModels="clr-namespace:SpeedwayClientWpf.ViewModels"
         Title="Speedway Client v0.5" Height="500" Width="700"
-        DataContext="{x:Static speedwayClientWpf:MainWindowViewModel.Instance}"
-        Background="RosyBrown">
+        DataContext="{x:Static viewModels:MainWindowViewModel.Instance}"
+        Icon="Rfid-Tag.ico"
+        Background="DarkGray">
     <Window.Resources>
-        <speedwayClientWpf:TypeToColorConverter x:Key="TypeToColorConverter" />
+        <viewModels:TypeToColorConverter x:Key="TypeToColorConverter" />
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -23,12 +25,24 @@
         </Menu>
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <GroupBox Header="Listening" DataContext="{Binding Listener}" >
+            <GroupBox Header="Readers" Grid.ColumnSpan="2">
+                <ItemsControl ItemsSource="{Binding Readers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ContentControl Content="{Binding ReaderControl}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </GroupBox>
+            <GroupBox Header="Listening" DataContext="{Binding ListenerViewModel}" Grid.Row="1">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -53,7 +67,7 @@
                     
                 </Grid>
             </GroupBox>
-            <GroupBox Header="Logging" Grid.Column="1">
+            <GroupBox Header="Logging" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2">
                 <ListBox ItemsSource="{Binding Messages}" Margin="5" >
                     <ListBox.ItemTemplate>
                         <DataTemplate>
