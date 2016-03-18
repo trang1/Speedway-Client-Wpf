@@ -41,11 +41,10 @@ namespace SpeedwayClientWpf.ViewModels
                 if (int.TryParse(_port, out i))
                     return _port;
 
-                return "11000";
+                return "23";
             }
             set { _port = value; }
         }
-
         public ListenerViewModel()
         {
             StartListeningCommand = new DelegateCommand(StartListening, () => !IsListening);

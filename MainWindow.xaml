@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:speedwayClientWpf="clr-namespace:SpeedwayClientWpf"
         xmlns:viewModels="clr-namespace:SpeedwayClientWpf.ViewModels"
-        Title="Speedway Client v0.5" Height="500" Width="700"
+        Title="Speedway Client v0.5" Height="600" Width="800"
+        MinHeight="300" MinWidth="400"
         DataContext="{x:Static viewModels:MainWindowViewModel.Instance}"
         Icon="Rfid-Tag.ico"
         Background="DarkGray">
@@ -27,13 +28,15 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <GroupBox Header="Readers" Grid.ColumnSpan="2">
+            
+            <GroupBox Header="Readers" Grid.ColumnSpan="2" Margin="1">
                 <ItemsControl ItemsSource="{Binding Readers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -42,7 +45,8 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </GroupBox>
-            <GroupBox Header="Listening" DataContext="{Binding ListenerViewModel}" Grid.Row="1">
+
+            <GroupBox Header="Listening" DataContext="{Binding ListenerViewModel}" Grid.Row="1" Margin="1">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -67,7 +71,34 @@
                     
                 </Grid>
             </GroupBox>
-            <GroupBox Header="Logging" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2">
+
+            <GroupBox Header="Settings" Grid.Row="2" Margin="1" >
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" MaxWidth="150"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="Folder path" Margin="5"/>
+                    <TextBox Text="{Binding FolderPath}" Grid.Column="1" Margin="5" Name="TbFolderPath"/>
+                    <Button Content=" ... " Grid.Column="2" Command="{Binding SelectFolderPathCommand}"
+                            Height="{Binding ElementName=TbFolderPath, Path=ActualHeight}" Margin="5"/>
+
+                    <TextBlock Text="Tag filter" Grid.Row="1" Margin="5"/>
+                    <TextBox Text="{Binding TagFilter}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
+                    
+                    <TextBlock Text="Re-read time, s" Grid.Row="2" Margin="5"/>
+                    <TextBox Text="{Binding RereadTime}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
+                </Grid>    
+            </GroupBox>
+
+            <GroupBox Header="Logging" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Margin="1">
                 <ListBox ItemsSource="{Binding Messages}" Margin="5" >
                     <ListBox.ItemTemplate>
                         <DataTemplate>
