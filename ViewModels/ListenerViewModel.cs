@@ -133,11 +133,6 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void Send(Socket handler, String data)
         {
-            if (!handler.Connected)
-            {
-                return;
-            }
-
             // Convert the string data to byte data using ASCII encoding.
             byte[] byteData = Encoding.ASCII.GetBytes(data);
 
@@ -169,6 +164,12 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 PushMessage("ERROR: " + e.Message, LogMessageType.Error);
             }
+        }
+
+        public void SendMessage(string outputToNetwork)
+        {
+            CheckSockets();
+            sockets.ForEach(s => Send(s, outputToNetwork));
         }
     }
 }

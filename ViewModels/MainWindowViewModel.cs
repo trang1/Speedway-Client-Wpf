@@ -102,7 +102,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             Messages.Add(logMessage);
 
-            if(Messages.Count > 100)
+            if(Messages.Count > 1000)
                 Messages.Clear();
         }
 

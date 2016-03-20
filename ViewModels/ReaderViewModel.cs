@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,23 +15,42 @@ namespace SpeedwayClientWpf.ViewModels
     public class ReaderViewModel : ViewModelBase
     {
         private TcpClient _client;
+        bool connected;
         readonly char[] _delimiterChars = { ',' };
         public string Name { get; set; }
         public string IpAddress { get; set; }
         public string Port { get; set; }
-        public bool Connected { get; set; }
+        public bool Connected
+        {
+            get
+            {
+                return connected;
+            }
+            set
+            {
+                connected = value;
+                OnPropertyChanged("ConnectButtonContent");
+            }
+        }
         public ICommand ConnectCommand { get; set; }
 
         Dictionary<int, int> _tags = new Dictionary<int, int>();  // this dictionary holds tag reads. It is used to save tag reads, so that the tag will not report if read again before x seconds have elapsed. The form will need a field to set this seconds value.
             
         public ReaderControl ReaderControl { get; set; }
+        public string ConnectButtonContent
+        {
+            get
+            {
+                return Connected ? "Disconnect" : "Connect";
+            }
+        }
 
         public ReaderViewModel()
         {
             ReaderControl = new ReaderControl {DataContext = this};
-            ConnectCommand = new DelegateCommand(Connect, () => IsEndPointValid() && !Connected);
+            ConnectCommand = new DelegateCommand(Connect, () => Connected || (!Connected && IsEndPointValid()));
 
-            Task.Factory.StartNew(CheckConnection);
+            //Task.Factory.StartNew(CheckConnection);
         }
 
         private void CheckConnection()
@@ -58,16 +78,26 @@ namespace SpeedwayClientWpf.ViewModels
 
         private bool IsEndPointValid()
         {
-            IPAddress ip;
-            int port;
+            if (string.IsNullOrEmpty(IpAddress) || string.IsNullOrEmpty(Port))
+                return false;
 
-            return IPAddress.TryParse(IpAddress, out ip) && int.TryParse(Port, out port);
+            int port;
+            Match match = Regex.Match(IpAddress, 
+                @"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+            return match.Success && int.TryParse(Port, out port);
         }
 
         private void Connect()
         {
-            _client = new TcpClient();
-            _client.BeginConnect(IPAddress.Parse(IpAddress), int.Parse(Port), ConnectedCallback, null);
+            if (!Connected)
+            {
+                _client = new TcpClient();
+                _client.BeginConnect(IPAddress.Parse(IpAddress), int.Parse(Port), ConnectedCallback, null);
+            }
+            else
+            {
+                _client.Close();
+            }
         }
 
         private void ConnectedCallback(IAsyncResult ar)
@@ -85,22 +115,26 @@ namespace SpeedwayClientWpf.ViewModels
                 //byte[] buffer = new byte[1024];
                 // Переменная для хранения количества байт, принятых от клиента
                 //int count;
-
-                while (true)
-                    //(count = _client.GetStream().Read(buffer, 0, buffer.Length)) > 0)
+                using (var sr = new StreamReader(_client.GetStream()))
                 {
-                    using (var sr = new StreamReader(_client.GetStream()))
+                    while (true)
+                    //(count = _client.GetStream().Read(buffer, 0, buffer.Length)) > 0)
                     {
-                        var message = sr.ReadLine();
-                        //message += Encoding.ASCII.GetString(buffer, 0, count);
-                        // Запрос должен обрываться последовательностью \r\n
-                        // Либо обрываем прием данных сами, если длина строки Request превышает 4 килобайта
-                        // Нам не нужно получать данные из POST-запроса (и т. п.), а обычный запрос
-                        // по идее не должен быть больше 4 килобайт
-                        if (message.IndexOf("\n", StringComparison.Ordinal) >= 0 || message.Length > 4096)
+                        if (!Connected)
+                            break;
+
+                        try
                         {
-                            ProcessMessage(message);
-                            //message = string.Empty;
+                            var message = sr.ReadLine();
+
+                            if (message != null)
+                                Task.Factory.StartNew(()=> ProcessMessage(message));
+                        }
+                        catch
+                        {
+                            PushMessage(Name + " disconnected.", LogMessageType.Reader);
+                            Connected = false;
+                            break;
                         }
                     }
                 }
@@ -136,10 +170,19 @@ namespace SpeedwayClientWpf.ViewModels
                     int epochTimeUltra = epochTimeToArray - 312768000; // convert the time ??
                     int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3));  // peel of the milliseconds
 
+                    string ettime = parts[2].Substring(0, 13);
+                    long etime = Convert.ToInt64(ettime);
+                    var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime).ToString("HH:mm:ss.fff");
+                    var readerId = IpAddress.Split('.')[3];
 
-
+                    string outputToFile = string.Format("{0},{1},{2},0,\"{3}\"{4}", 
+                        readerId, parts[0], bib, epoch, Environment.NewLine);
+                    string outputToNetwork = string.Format("0,{0},{1},{2},1,23,0,0,0,0000000000000000,0,0{3}", 
+                        bib, epochTimeUltra, milliEpochTimeToArray, Environment.NewLine);
+                    
                     _tags[bib] = epochTimeToArray;
-                    WriteToFile(message);
+                    WriteToFile(outputToFile);
+                    MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
                 }
             }
             catch(Exception e)
