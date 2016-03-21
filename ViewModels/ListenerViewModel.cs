@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -109,16 +110,24 @@ namespace SpeedwayClientWpf.ViewModels
         public void AcceptCallback(IAsyncResult ar)
         {
             if(! IsListening) return;
-            var listener = (TcpListener)ar.AsyncState;
-            Socket handler = listener.EndAcceptSocket(ar);
+            try
+            {
+                var listener = (TcpListener)ar.AsyncState;
+                Socket handler = listener.EndAcceptSocket(ar);
 
-            PushMessage("Client connected : " + handler.RemoteEndPoint, LogMessageType.Listener);
-            
-            sockets.ForEach(s => Send(s, string.Format("Client connected: {0} \r\n", handler.RemoteEndPoint)));
-            CheckSockets();
+                PushMessage("Client connected : " + handler.RemoteEndPoint, LogMessageType.Listener);
 
-            sockets.Add(handler);
-            MyEvent.Set();
+                sockets.ForEach(s => Send(s, string.Format("Client connected: {0} \r\n", handler.RemoteEndPoint)));
+                CheckSockets();
+
+                sockets.Add(handler);
+                MyEvent.Set();
+            }
+            catch (Exception exception)
+            {
+                PushMessage("ERROR accepting connection. " + exception.Message, LogMessageType.Error);
+                Trace.TraceError("ERROR accepting connection. " + exception.Message + exception.StackTrace);
+            }
         }
 
         private void CheckSockets()
@@ -144,7 +153,8 @@ namespace SpeedwayClientWpf.ViewModels
             }
             catch (Exception e)
             {
-                PushMessage("ERROR: " + e.Message, LogMessageType.Error);
+                PushMessage("ERROR sending data. " + e.Message, LogMessageType.Error);
+                Trace.TraceError("ERROR sending data. " + e.Message + e.StackTrace);
             }
         }
 
@@ -162,7 +172,8 @@ namespace SpeedwayClientWpf.ViewModels
             }
             catch (Exception e)
             {
-                PushMessage("ERROR: " + e.Message, LogMessageType.Error);
+                PushMessage("ERROR sending data. " + e.Message, LogMessageType.Error);
+                Trace.TraceError("ERROR sending data. " + e.Message + e.StackTrace);
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -15,24 +16,46 @@ namespace SpeedwayClientWpf.ViewModels
     public class ReaderViewModel : ViewModelBase
     {
         private TcpClient _client;
-        bool connected;
+        bool _connected;
         readonly char[] _delimiterChars = { ',' };
         public string Name { get; set; }
         public string IpAddress { get; set; }
         public string Port { get; set; }
+
+        public string CurrentTime
+        {
+            get { return _currentTime; }
+            set
+            {
+                _currentTime = value;
+                OnPropertyChanged("CurrentTime");
+            }
+        }
+        public string TimeToSet
+        {
+            get { return _timeToSet; }
+            set
+            {
+                _timeToSet = value;
+                OnPropertyChanged("TimeToSet");
+            }
+        }
         public bool Connected
         {
             get
             {
-                return connected;
+                return _connected;
             }
             set
             {
-                connected = value;
+                _connected = value;
+                OnPropertyChanged("Connected");
                 OnPropertyChanged("ConnectButtonContent");
             }
         }
         public ICommand ConnectCommand { get; set; }
+        public ICommand UpdateTimeCommand { get; set; }
+        public ICommand SetTimeCommand { get; set; }
 
         Dictionary<int, int> _tags = new Dictionary<int, int>();  // this dictionary holds tag reads. It is used to save tag reads, so that the tag will not report if read again before x seconds have elapsed. The form will need a field to set this seconds value.
             
@@ -49,8 +72,19 @@ namespace SpeedwayClientWpf.ViewModels
         {
             ReaderControl = new ReaderControl {DataContext = this};
             ConnectCommand = new DelegateCommand(Connect, () => Connected || (!Connected && IsEndPointValid()));
-
+            UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
+            SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
             //Task.Factory.StartNew(CheckConnection);
+        }
+
+        private void SetTime()
+        {
+            CurrentTime = TimeToSet;
+        }
+
+        private void UpdateTime()
+        {
+            CurrentTime = DateTime.Now.ToString("T");
         }
 
         private void CheckConnection()
@@ -102,46 +136,45 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void ConnectedCallback(IAsyncResult ar)
         {
-            if (_client.Connected)
+            try
             {
-                PushMessage(string.Format("{0} connected successfully to {1}", Name, _client.Client.RemoteEndPoint),
-                    LogMessageType.Reader);
-                Connected = true;
                 _client.EndConnect(ar);
+            }
+            catch (Exception exception)
+            {
+                var error = string.Format("ERROR in {0}. {1}", Name, exception.Message);
+                PushMessage(error, LogMessageType.Error);
+                Trace.TraceError(error + exception.StackTrace);
+                return;
+            }
 
-                // Объявим строку, в которой будет хранится запрос клиента
-                //string message = string.Empty;
-                // Буфер для хранения принятых от клиента данных
-                //byte[] buffer = new byte[1024];
-                // Переменная для хранения количества байт, принятых от клиента
-                //int count;
-                using (var sr = new StreamReader(_client.GetStream()))
+            PushMessage(string.Format("{0} connected successfully to {1}", Name, _client.Client.RemoteEndPoint),
+                LogMessageType.Reader);
+            Connected = true;
+
+            using (var sr = new StreamReader(_client.GetStream()))
+            {
+                while (true)
                 {
-                    while (true)
-                    //(count = _client.GetStream().Read(buffer, 0, buffer.Length)) > 0)
+                    if (!Connected)
+                        break;
+
+                    try
                     {
-                        if (!Connected)
-                            break;
+                        var message = sr.ReadLine();
 
-                        try
-                        {
-                            var message = sr.ReadLine();
+                        if (message != null)
+                            Task.Factory.StartNew(() => ProcessMessage(message));
+                    }
+                    catch (Exception exception)
+                    {
+                        PushMessage(Name + " disconnected.", LogMessageType.Reader);
+                        Trace.TraceError(Name + " disconnected. " + exception.Message + exception.StackTrace);
 
-                            if (message != null)
-                                Task.Factory.StartNew(()=> ProcessMessage(message));
-                        }
-                        catch
-                        {
-                            PushMessage(Name + " disconnected.", LogMessageType.Reader);
-                            Connected = false;
-                            break;
-                        }
+                        Connected = false;
+                        break;
                     }
                 }
-            }
-            else
-            {
-                PushMessage(string.Format("ERROR: Connection to {0}:{1} failed.", IpAddress, Port), LogMessageType.Error);
             }
         }
 
@@ -162,50 +195,67 @@ namespace SpeedwayClientWpf.ViewModels
                 var tagFilter = MainWindowViewModel.Instance.TagFilter;
                 var rereadTime = MainWindowViewModel.Instance.RereadTime;
 
-                int epochTimeToArray = Convert.ToInt32(parts[2].Substring(0, 10));  //extract epoch time
+                int epochTimeToArray = Convert.ToInt32(parts[2].Substring(0, 10)); //extract epoch time
 
-                if ((string.IsNullOrEmpty(tagFilter) || (!string.IsNullOrEmpty(tagFilter) && bib.ToString().Contains(tagFilter))) && // This filter EPC tags based on the filter given in the form.
-                    (!_tags.ContainsKey(bib) || (_tags.ContainsKey(bib) && _tags[bib] + rereadTime <= epochTimeToArray))) 
+                if ((string.IsNullOrEmpty(tagFilter) ||
+                     (!string.IsNullOrEmpty(tagFilter) && bib.ToString().Contains(tagFilter))) &&
+                    // This filter EPC tags based on the filter given in the form.
+                    (!_tags.ContainsKey(bib) || (_tags.ContainsKey(bib) && _tags[bib] + rereadTime <= epochTimeToArray)))
                 {
                     int epochTimeUltra = epochTimeToArray - 312768000; // convert the time ??
-                    int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3));  // peel of the milliseconds
+                    int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3)); // peel of the milliseconds
 
                     string ettime = parts[2].Substring(0, 13);
                     long etime = Convert.ToInt64(ettime);
-                    var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime).ToString("HH:mm:ss.fff");
+                    var epoch =
+                        new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime)
+                            .ToString("HH:mm:ss.fff");
                     var readerId = IpAddress.Split('.')[3];
 
-                    string outputToFile = string.Format("{0},{1},{2},0,\"{3}\"{4}", 
+                    string outputToFile = string.Format("{0},{1},{2},0,\"{3}\"{4}",
                         readerId, parts[0], bib, epoch, Environment.NewLine);
-                    string outputToNetwork = string.Format("0,{0},{1},{2},1,23,0,0,0,0000000000000000,0,0{3}", 
+                    string outputToNetwork = string.Format("0,{0},{1},{2},1,23,0,0,0,0000000000000000,0,0{3}",
                         bib, epochTimeUltra, milliEpochTimeToArray, Environment.NewLine);
-                    
+
                     _tags[bib] = epochTimeToArray;
                     WriteToFile(outputToFile);
                     MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
                 }
             }
-            catch(Exception e)
+            catch (Exception exception)
             {
-                PushMessage(string.Format("ERROR: message parsing error from {0}. {1}", Name, e.Message), LogMessageType.Error);
+                var error = string.Format("ERROR: message parsing error from {0}. {1}", Name, exception.Message);
+                PushMessage(error, LogMessageType.Error);
+                Trace.TraceError(error + exception.StackTrace);
             }
         }
 
         private readonly object _locker = new Object();
+        private string _currentTime;
+        private string _timeToSet;
+
         public void WriteToFile(string text)
         {
             var folder = MainWindowViewModel.Instance.FolderPath;
             if(string.IsNullOrEmpty(folder)) return;
 
-            var fileName = Path.Combine(folder, IpAddress+ ".txt");
-            
-            lock (_locker)
+            try
             {
-                using (var file = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read))
-                using (var writer = new StreamWriter(file, Encoding.Unicode))
+                var fileName = Path.Combine(folder, IpAddress + ".txt");
+
+                lock (_locker)
                 {
-                    writer.Write(text);
+                    using (var file = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read))
+                    using (var writer = new StreamWriter(file, Encoding.Unicode))
+                    {
+                        writer.Write(text);
+                    }
                 }
+            }
+            catch (Exception exception)
+            {
+                var error = string.Format("{0}: error writing to file. {1}", Name, exception.Message);
+                Trace.TraceError(error + exception.StackTrace);
             }
         }
     }

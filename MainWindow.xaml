@@ -86,15 +86,15 @@
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Text="Folder path" Margin="5"/>
-                    <TextBox Text="{Binding FolderPath}" Grid.Column="1" Margin="5" Name="TbFolderPath"/>
+                    <TextBox Text="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="5" Name="TbFolderPath"/>
                     <Button Content=" ... " Grid.Column="2" Command="{Binding SelectFolderPathCommand}"
                             Height="{Binding ElementName=TbFolderPath, Path=ActualHeight}" Margin="5"/>
 
                     <TextBlock Text="Tag filter" Grid.Row="1" Margin="5"/>
-                    <TextBox Text="{Binding TagFilter}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
+                    <TextBox Text="{Binding TagFilter, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
                     
                     <TextBlock Text="Re-read time, s" Grid.Row="2" Margin="5"/>
-                    <TextBox Text="{Binding RereadTime}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
+                    <TextBox Text="{Binding RereadTime, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
                 </Grid>    
             </GroupBox>
 

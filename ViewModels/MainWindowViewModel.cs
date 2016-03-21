@@ -100,7 +100,7 @@ namespace SpeedwayClientWpf.ViewModels
         }
         public void PushMessage(LogMessage logMessage)
         {
-            Messages.Add(logMessage);
+            Messages.Insert(0, logMessage);
 
             if(Messages.Count > 1000)
                 Messages.Clear();
