@@ -31,7 +31,7 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("CurrentTime");
             }
         }
-        public string TimeToSet
+        public TimeSpan TimeToSet
         {
             get { return _timeToSet; }
             set
@@ -79,12 +79,12 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void SetTime()
         {
-            CurrentTime = TimeToSet;
+            CurrentTime = new DateTime(TimeToSet.Ticks).ToShortTimeString();
         }
 
         private void UpdateTime()
         {
-            CurrentTime = DateTime.Now.ToString("T");
+            CurrentTime = DateTime.Now.ToShortTimeString();
         }
 
         private void CheckConnection()
@@ -232,7 +232,7 @@ namespace SpeedwayClientWpf.ViewModels
 
         private readonly object _locker = new Object();
         private string _currentTime;
-        private string _timeToSet;
+        private TimeSpan _timeToSet;
 
         public void WriteToFile(string text)
         {
