@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Renci.SshNet;
 
 namespace SpeedwayClientWpf.ViewModels
 {
@@ -56,6 +57,7 @@ namespace SpeedwayClientWpf.ViewModels
         public ICommand ConnectCommand { get; set; }
         public ICommand UpdateTimeCommand { get; set; }
         public ICommand SetTimeCommand { get; set; }
+        private Timer _timer;
 
         Dictionary<int, int> _tags = new Dictionary<int, int>();  // this dictionary holds tag reads. It is used to save tag reads, so that the tag will not report if read again before x seconds have elapsed. The form will need a field to set this seconds value.
             
@@ -75,16 +77,67 @@ namespace SpeedwayClientWpf.ViewModels
             UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
             SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
             //Task.Factory.StartNew(CheckConnection);
+            _timer = new Timer(o =>
+            {
+                if (Connected)
+                    UpdateTime();
+                SetTimeToSet(DateTime.Now);
+            }, null, 60000, 60000);
+
+            SetTimeToSet(DateTime.Now);
+        }
+
+        void SetTimeToSet(DateTime dateTime)
+        {
+            TimeToSet = dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerSecond)).TimeOfDay;
         }
 
         private void SetTime()
         {
-            CurrentTime = new DateTime(TimeToSet.Ticks).ToShortTimeString();
+            try
+            {
+                using (var sshclient = new SshClient(_connectionInfo))
+                {
+                    sshclient.Connect();
+                    using (var command = sshclient.CreateCommand("date -s " + TimeToSet))
+                    {
+                       command.Execute();
+                    }
+                    sshclient.Disconnect();
+                }
+                UpdateTime();
+                PushMessage(string.Format("Time for {0} successfully set.", Name), LogMessageType.Reader);
+            }
+            catch (Exception exception)
+            {
+                var error = string.Format("ERROR: update time failed for {0}. {1}", Name, exception.Message);
+                PushMessage(error, LogMessageType.Error);
+                Trace.TraceError(error + exception.StackTrace);
+            }
         }
 
         private void UpdateTime()
         {
-            CurrentTime = DateTime.Now.ToShortTimeString();
+            //var connection = new ConnectionInfo(IpAddress, 22, "root", new PasswordAuthenticationMethod("root", "impinj"));
+            try
+            {
+                using (var sshclient = new SshClient(_connectionInfo))
+                {
+                    sshclient.Connect();
+                    using (var command = sshclient.CreateCommand("date +%H:%M:%S"))
+                    {
+                        CurrentTime = command.Execute().Replace('\n',' ');
+                    }
+
+                    sshclient.Disconnect();
+                }
+            }
+            catch (Exception exception)
+            {
+                var error = string.Format("ERROR: update time failed for {0}. {1}", Name, exception.Message);
+                PushMessage(error, LogMessageType.Error);
+                Trace.TraceError(error + exception.StackTrace);
+            }
         }
 
         private void CheckConnection()
@@ -233,6 +286,8 @@ namespace SpeedwayClientWpf.ViewModels
         private readonly object _locker = new Object();
         private string _currentTime;
         private TimeSpan _timeToSet;
+        private readonly ConnectionInfo _connectionInfo = 
+            new ConnectionInfo("192.168.0.113", 22, "root", new PasswordAuthenticationMethod("root", "1"));
 
         public void WriteToFile(string text)
         {
