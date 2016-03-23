@@ -61,6 +61,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ConfigHelper.cs" />
     <Compile Include="ReaderControl.xaml.cs">
       <DependentUpon>ReaderControl.xaml</DependentUpon>
     </Compile>

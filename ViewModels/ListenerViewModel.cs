@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -24,13 +25,21 @@ namespace SpeedwayClientWpf.ViewModels
                 if (IPAddress.TryParse(_ipAddress, out a))
                     return _ipAddress;
 
-                IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-                return ipHostInfo.AddressList[2].ToString();
+                return "127.0.0.1";
             }
             set
             {
                 _ipAddress = value;
                 OnPropertyChanged("IpAddress");
+            }
+        }
+
+        public IList<string> Ips
+        {
+            get
+            {
+                IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
+                return ipHostInfo.AddressList.Select(i => i.ToString()).ToList();
             }
         }
 

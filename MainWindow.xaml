@@ -18,6 +18,7 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="File" >
+                <MenuItem Header="Save settings" Command="{Binding SaveSettingsCommand}"/>
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
             </MenuItem>
             <MenuItem Header="Help">
@@ -59,7 +60,7 @@
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Text="Local IP address" Margin="5"/>
-                    <TextBox Text="{Binding IpAddress}" Grid.Column="1" MinWidth="150" Margin="5"/>
+                    <ComboBox SelectedItem="{Binding IpAddress}" ItemsSource="{Binding Ips}" Grid.Column="1" MinWidth="150" Margin="5"/>
 
                     <TextBlock Text="Local port" Margin="5" Grid.Row="1"/>
                     <TextBox Text="{Binding Port}" Grid.Row="1" Grid.Column="1" MinWidth="150" Margin="5"/>

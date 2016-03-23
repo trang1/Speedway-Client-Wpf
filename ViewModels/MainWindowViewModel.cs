@@ -33,6 +33,25 @@ namespace SpeedwayClientWpf.ViewModels
             if (dialog.ShowDialog() == DialogResult.OK)
                 FolderPath = dialog.SelectedPath;
         }
+
+        private void SaveSettings()
+        {
+            ConfigHelper.Set("TagFilter", TagFilter);
+            ConfigHelper.Set("RereadTime", RereadTime.ToString());
+            ConfigHelper.Set("FolderPath", FolderPath);
+            ConfigHelper.Set("ListenerPort", _listenerViewModel.Port);
+        }
+        private void LoadSettings()
+        {
+            TagFilter = ConfigHelper.Get("TagFilter");
+            FolderPath = ConfigHelper.Get("FolderPath");
+            _listenerViewModel.Port = ConfigHelper.Get("ListenerPort");
+
+            int rereadtime;
+            if (int.TryParse(ConfigHelper.Get("RereadTime"), out rereadtime))
+                RereadTime = rereadtime;
+        }
+
         #endregion 
 
         #region Constructor
@@ -51,9 +70,12 @@ namespace SpeedwayClientWpf.ViewModels
             };
 
             SelectFolderPathCommand = new DelegateCommand(SelectFolderPath);
+            SaveSettingsCommand = new DelegateCommand(SaveSettings);
             ExitCommand = new DelegateCommand(() => Application.Current.Shutdown());
+
+            LoadSettings();
         }
-        
+
         #endregion
 
         #region public members
@@ -111,6 +133,7 @@ namespace SpeedwayClientWpf.ViewModels
 
         public ICommand ExitCommand { get; set; }
         public ICommand SelectFolderPathCommand { get; set; }
+        public ICommand SaveSettingsCommand { get; set; }
 
         #endregion
     }
