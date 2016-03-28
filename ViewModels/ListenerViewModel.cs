@@ -55,6 +55,7 @@ namespace SpeedwayClientWpf.ViewModels
             }
             set { _port = value; }
         }
+
         public ListenerViewModel()
         {
             StartListeningCommand = new DelegateCommand(StartListening, () => !IsListening);

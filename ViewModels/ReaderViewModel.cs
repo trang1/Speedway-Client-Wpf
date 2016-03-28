@@ -18,6 +18,7 @@ namespace SpeedwayClientWpf.ViewModels
     {
         private TcpClient _client;
         bool _connected;
+        int _counter;
         readonly char[] _delimiterChars = { ',' };
         public string Name { get; set; }
         public string IpAddress { get; set; }
@@ -204,6 +205,8 @@ namespace SpeedwayClientWpf.ViewModels
             PushMessage(string.Format("{0} connected successfully to {1}", Name, _client.Client.RemoteEndPoint),
                 LogMessageType.Reader);
             Connected = true;
+            _connectionInfo = new ConnectionInfo(IpAddress, 22, "root", 
+                new PasswordAuthenticationMethod("root", "impinj"));
 
             using (var sr = new StreamReader(_client.GetStream()))
             {
@@ -247,6 +250,8 @@ namespace SpeedwayClientWpf.ViewModels
                 int bib = Convert.ToInt32(bibHex, 16);
                 var tagFilter = MainWindowViewModel.Instance.TagFilter;
                 var rereadTime = MainWindowViewModel.Instance.RereadTime;
+                var addDateToOutput = MainWindowViewModel.Instance.AddDateToOutput;
+                var addReaderInfoToOutput = MainWindowViewModel.Instance.AddReaderInfoToOutput;
 
                 int epochTimeToArray = Convert.ToInt32(parts[2].Substring(0, 10)); //extract epoch time
 
@@ -262,13 +267,17 @@ namespace SpeedwayClientWpf.ViewModels
                     long etime = Convert.ToInt64(ettime);
                     var epoch =
                         new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime)
-                            .ToString("HH:mm:ss.fff");
+                            .ToString(addDateToOutput ? "yyyy-MM-dd HH:mm:ss.fff" : "HH:mm:ss.fff");
                     var readerId = IpAddress.Split('.')[3];
 
-                    string outputToFile = string.Format("{0},{1},{2},0,\"{3}\"{4}",
-                        readerId, parts[0], bib, epoch, Environment.NewLine);
-                    string outputToNetwork = string.Format("0,{0},{1},{2},1,23,0,0,0,0000000000000000,0,0{3}",
-                        bib, epochTimeUltra, milliEpochTimeToArray, Environment.NewLine);
+                    string outputToFile = string.Format("{0},{1},0,\"{2}\"",
+                        parts[0], bib, epoch);
+
+                    if (addReaderInfoToOutput)
+                        outputToFile = string.Format("{0},{1},{2}", outputToFile, readerId, parts[0]);
+                    
+                    string outputToNetwork = string.Format("0,{0},{1},{2},{3},{4},0,0,{5},0000000000000000,0,{6}{7}",
+                        bib, epochTimeUltra, milliEpochTimeToArray,parts[0], parts[3], readerId, _counter++, Environment.NewLine);
 
                     _tags[bib] = epochTimeToArray;
                     WriteToFile(outputToFile);
@@ -286,9 +295,7 @@ namespace SpeedwayClientWpf.ViewModels
         private readonly object _locker = new Object();
         private string _currentTime;
         private TimeSpan _timeToSet;
-        private readonly ConnectionInfo _connectionInfo = 
-            new ConnectionInfo("192.168.0.113", 22, "root", new PasswordAuthenticationMethod("root", "1"));
-
+        private ConnectionInfo _connectionInfo;
         public void WriteToFile(string text)
         {
             var folder = MainWindowViewModel.Instance.FolderPath;
@@ -303,7 +310,7 @@ namespace SpeedwayClientWpf.ViewModels
                     using (var file = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read))
                     using (var writer = new StreamWriter(file, Encoding.Unicode))
                     {
-                        writer.Write(text);
+                        writer.WriteLine(text);
                     }
                 }
             }

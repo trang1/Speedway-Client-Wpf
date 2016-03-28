@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:speedwayClientWpf="clr-namespace:SpeedwayClientWpf"
         xmlns:viewModels="clr-namespace:SpeedwayClientWpf.ViewModels"
-        Title="Speedway Client v0.5" Height="600" Width="800"
+        Title="Speedway Client v0.5" Height="470" Width="800"
         MinHeight="300" MinWidth="400"
         DataContext="{x:Static viewModels:MainWindowViewModel.Instance}"
         Icon="Rfid-Tag.ico"
@@ -64,8 +64,8 @@
 
                     <TextBlock Text="Local port" Margin="5" Grid.Row="1"/>
                     <TextBox Text="{Binding Port}" Grid.Row="1" Grid.Column="1" MinWidth="150" Margin="5"/>
-
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+     
+                    <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Start listening" Command="{Binding StartListeningCommand}" Margin="5" MinWidth="100"/>
                         <Button Content="Stop listening" Command="{Binding StopListeningCommand}" Margin="5" MinWidth="100"/>
                     </StackPanel>
@@ -78,7 +78,9 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -96,6 +98,10 @@
                     
                     <TextBlock Text="Re-read time, s" Grid.Row="2" Margin="5"/>
                     <TextBox Text="{Binding RereadTime, UpdateSourceTrigger=PropertyChanged}" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5"/>
+
+                    <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Add date to output" IsChecked="{Binding AddDateToOutput}" Margin="5"/>
+
+                    <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Add reader id &amp; antenna to output" IsChecked="{Binding AddReaderInfoToOutput}" Margin="5"/>
                 </Grid>    
             </GroupBox>
 

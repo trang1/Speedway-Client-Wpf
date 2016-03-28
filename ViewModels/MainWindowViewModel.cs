@@ -19,6 +19,8 @@ namespace SpeedwayClientWpf.ViewModels
         private string _folderPath;
         private string _tagFilter;
         private int _rereadTime;
+        private bool _addDateToOutput;
+        private bool _addReaderInfoToOutput;
 
         private void SelectFolderPath()
         {
@@ -40,12 +42,16 @@ namespace SpeedwayClientWpf.ViewModels
             ConfigHelper.Set("RereadTime", RereadTime.ToString());
             ConfigHelper.Set("FolderPath", FolderPath);
             ConfigHelper.Set("ListenerPort", _listenerViewModel.Port);
+            ConfigHelper.Set("AddDateToOutput", AddDateToOutput.ToString());
+            ConfigHelper.Set("AddReaderInfoToOutput", AddReaderInfoToOutput.ToString());
         }
         private void LoadSettings()
         {
             TagFilter = ConfigHelper.Get("TagFilter");
             FolderPath = ConfigHelper.Get("FolderPath");
             _listenerViewModel.Port = ConfigHelper.Get("ListenerPort");
+            AddDateToOutput = bool.Parse(ConfigHelper.Get("AddDateToOutput"));
+            AddReaderInfoToOutput = bool.Parse(ConfigHelper.Get("AddReaderInfoToOutput"));
 
             int rereadtime;
             if (int.TryParse(ConfigHelper.Get("RereadTime"), out rereadtime))
@@ -118,6 +124,30 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 _rereadTime = value;
                 OnPropertyChanged("RereadTime");
+            }
+        }
+        public bool AddDateToOutput
+        {
+            get
+            {
+                return _addDateToOutput;
+            }
+            set
+            {
+                _addDateToOutput = value;
+                OnPropertyChanged("AddDateToOutput");
+            }
+        }
+        public bool AddReaderInfoToOutput
+        {
+            get
+            {
+                return _addReaderInfoToOutput;
+            }
+            set
+            {
+                _addReaderInfoToOutput = value;
+                OnPropertyChanged("AddReaderInfoToOutput");
             }
         }
         public void PushMessage(LogMessage logMessage)
