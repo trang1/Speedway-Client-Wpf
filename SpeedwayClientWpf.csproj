@@ -37,6 +37,9 @@
     <ApplicationIcon>Rfid-Tag.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Loya.Dameer">
+      <HintPath>.\Loya.Dameer.dll</HintPath>
+    </Reference>
     <Reference Include="Renci.SshNet">
       <HintPath>.\Renci.SshNet.dll</HintPath>
     </Reference>

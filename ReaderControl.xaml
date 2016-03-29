@@ -4,6 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ld="clr-namespace:Loya.Dameer;assembly=Loya.Dameer"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     <Border BorderBrush="#ece6d5" BorderThickness="1">
@@ -12,7 +13,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
@@ -20,7 +21,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="4*"/>
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     
@@ -34,7 +35,8 @@
                     <TextBlock Text="Current time:" Grid.Column="6" Margin="5"/>
                     <TextBlock Text="{Binding CurrentTime}" Grid.Column="7" FontSize="14" Margin="5" Width="60"/>
                     <Button Content="Update" Grid.Column="8" Command="{Binding UpdateTimeCommand}" Margin="5" Width="70"/>
-                    <TextBox Text="{Binding TimeToSet}" Grid.Column="9" Margin="5"/>
+            <ld:Dameer Format="Custom" CustomFormat="MM/dd/yyyy hh:mm:ss tt" Value="{Binding TimeToSet}" ShowCheckBox="False" Grid.Column="9" Margin="5"/>
+            <!--<TextBox Text="{Binding TimeToSet}" Grid.Column="9" Margin="5"/>-->
             <Button Content="Set time" Command="{Binding SetTimeCommand}" Grid.Column="10" Margin="5" Width="70"/>
         </Grid>
     </Border>

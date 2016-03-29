@@ -11,6 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Renci.SshNet;
+using System.Linq;
+using System.Globalization;
 
 namespace SpeedwayClientWpf.ViewModels
 {
@@ -33,7 +35,7 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("CurrentTime");
             }
         }
-        public TimeSpan TimeToSet
+        public DateTime TimeToSet
         {
             get { return _timeToSet; }
             set
@@ -53,6 +55,7 @@ namespace SpeedwayClientWpf.ViewModels
                 _connected = value;
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("ConnectButtonContent");
+                App.Current.Dispatcher.Invoke(new Action(CommandManager.InvalidateRequerySuggested));
             }
         }
         public ICommand ConnectCommand { get; set; }
@@ -82,15 +85,10 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 if (Connected)
                     UpdateTime();
-                SetTimeToSet(DateTime.Now);
+                TimeToSet = DateTime.Now;
             }, null, 60000, 60000);
 
-            SetTimeToSet(DateTime.Now);
-        }
-
-        void SetTimeToSet(DateTime dateTime)
-        {
-            TimeToSet = dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerSecond)).TimeOfDay;
+            TimeToSet = DateTime.Now;
         }
 
         private void SetTime()
@@ -100,9 +98,10 @@ namespace SpeedwayClientWpf.ViewModels
                 using (var sshclient = new SshClient(_connectionInfo))
                 {
                     sshclient.Connect();
-                    using (var command = sshclient.CreateCommand("date -s " + TimeToSet))
+                    using (var command = sshclient.CreateCommand(
+                        "config system time " + TimeToSet.ToString("yyyy.MM.dd-HH:mm:ss")))
                     {
-                       command.Execute();
+                        command.Execute();
                     }
                     sshclient.Disconnect();
                 }
@@ -125,9 +124,27 @@ namespace SpeedwayClientWpf.ViewModels
                 using (var sshclient = new SshClient(_connectionInfo))
                 {
                     sshclient.Connect();
-                    using (var command = sshclient.CreateCommand("date +%H:%M:%S"))
+                    using (var command = sshclient.CreateCommand("show system summary"))
                     {
-                        CurrentTime = command.Execute().Replace('\n',' ');
+                        var str = "Status = '0,Success' \r\n" +
+                            "SysDesc = 'Speedway R220'\r\n" +
+                            "SysContact = 'unknown'\r\n" +
+                            "SysName = 'SpeedwayR-11-32-30'\r\n" +
+                            "SysLocation = 'unknown'\r\n" +
+                            "SysTime = 'Wed Mar 23 07:35:13 UTC 2016'\r\n";
+                        //var result = command.Execute();
+
+                        var line = new List<string>(str.Split('\n')).
+                            FirstOrDefault(s => s.ToLower().Contains("systime"));
+                        var date = line.Split('=')[1].Trim('\r',' ', '\'');
+                        DateTime dt;
+                        if(!DateTime.TryParse(date, out dt))
+                        {
+                            dt = DateTime.ParseExact(date,"ddd MMM dd HH:mm:ss UTC yyyy", 
+                                CultureInfo.InvariantCulture);
+                            CurrentTime = dt.ToString("HH:mm:ss");
+                        }
+
                     }
 
                     sshclient.Disconnect();
@@ -294,7 +311,7 @@ namespace SpeedwayClientWpf.ViewModels
 
         private readonly object _locker = new Object();
         private string _currentTime;
-        private TimeSpan _timeToSet;
+        private DateTime _timeToSet;
         private ConnectionInfo _connectionInfo;
         public void WriteToFile(string text)
         {
