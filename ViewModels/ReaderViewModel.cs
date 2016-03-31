@@ -20,6 +20,7 @@ namespace SpeedwayClientWpf.ViewModels
     {
         private TcpClient _client;
         bool _connected;
+        bool _connecting;
         int _counter;
         readonly char[] _delimiterChars = { ',' };
         public string Name { get; set; }
@@ -70,6 +71,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             get
             {
+                if (_connecting) return "Connecting";
                 return Connected ? "Disconnect" : "Connect";
             }
         }
@@ -77,7 +79,8 @@ namespace SpeedwayClientWpf.ViewModels
         public ReaderViewModel()
         {
             ReaderControl = new ReaderControl {DataContext = this};
-            ConnectCommand = new DelegateCommand(Connect, () => Connected || (!Connected && IsEndPointValid()));
+            ConnectCommand = new DelegateCommand(Connect, 
+                () => Connected || (!Connected && IsEndPointValid() && !_connecting));
             UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
             SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
             //Task.Factory.StartNew(CheckConnection);
@@ -91,6 +94,7 @@ namespace SpeedwayClientWpf.ViewModels
             TimeToSet = DateTime.Now;
         }
 
+        #region SSH methods
         private void SetTime()
         {
             try
@@ -158,28 +162,7 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
-        private void CheckConnection()
-        {
-            while (true)
-            {
-                Thread.Sleep(10000);
-                if (Connected)
-                {
-                    try
-                    {
-                        Connected = !(_client.Client.Poll(1, SelectMode.SelectRead) && _client.Client.Available == 0);
-                    }
-                    catch (SocketException)
-                    {
-                        Connected = false;
-                    }
-
-                    if (!Connected)
-                        PushMessage(string.Format("ERROR: {0} connection lost.", Name), LogMessageType.Error);
-                }
-            }
-        }
-
+        #endregion
 
         private bool IsEndPointValid()
         {
@@ -198,6 +181,8 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 _client = new TcpClient();
                 _client.BeginConnect(IPAddress.Parse(IpAddress), int.Parse(Port), ConnectedCallback, null);
+                _connecting = true;
+                OnPropertyChanged("ConnectButtonContent");
             }
             else
             {
@@ -209,6 +194,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             try
             {
+                _connecting = false;
                 _client.EndConnect(ar);
             }
             catch (Exception exception)
