@@ -41,14 +41,17 @@ namespace SpeedwayClientWpf.ViewModels
             ConfigHelper.Set("TagFilter", TagFilter);
             ConfigHelper.Set("RereadTime", RereadTime.ToString());
             ConfigHelper.Set("FolderPath", FolderPath);
+            ConfigHelper.Set("LocalIpAddress", _listenerViewModel.IpAddress);
             ConfigHelper.Set("ListenerPort", _listenerViewModel.Port);
             ConfigHelper.Set("AddDateToOutput", AddDateToOutput.ToString());
             ConfigHelper.Set("AddReaderInfoToOutput", AddReaderInfoToOutput.ToString());
+            ConfigHelper.SaveReaders(Readers);
         }
         private void LoadSettings()
         {
             TagFilter = ConfigHelper.Get("TagFilter");
             FolderPath = ConfigHelper.Get("FolderPath");
+            _listenerViewModel.IpAddress = ConfigHelper.Get("LocalIpAddress");
             _listenerViewModel.Port = ConfigHelper.Get("ListenerPort");
             AddDateToOutput = bool.Parse(ConfigHelper.Get("AddDateToOutput"));
             AddReaderInfoToOutput = bool.Parse(ConfigHelper.Get("AddReaderInfoToOutput"));
@@ -56,6 +59,8 @@ namespace SpeedwayClientWpf.ViewModels
             int rereadtime;
             if (int.TryParse(ConfigHelper.Get("RereadTime"), out rereadtime))
                 RereadTime = rereadtime;
+
+            Readers = new ObservableCollection<ReaderViewModel>(ConfigHelper.GetReaders());
         }
 
         #endregion 
@@ -67,13 +72,13 @@ namespace SpeedwayClientWpf.ViewModels
             _listenerViewModel = new ListenerViewModel();
             Messages = new ObservableCollection<LogMessage>();
 
-            Readers = new ObservableCollection<ReaderViewModel>
+           /* Readers = new ObservableCollection<ReaderViewModel>
             {
                 new ReaderViewModel {Name = "Reader 1", Port = "14150"},
                 new ReaderViewModel {Name = "Reader 2", Port = "14150"},
                 new ReaderViewModel {Name = "Reader 3", Port = "14150"},
                 new ReaderViewModel {Name = "Reader 4", Port = "14150"}
-            };
+            };*/
 
             SelectFolderPathCommand = new DelegateCommand(SelectFolderPath);
             SaveSettingsCommand = new DelegateCommand(SaveSettings);

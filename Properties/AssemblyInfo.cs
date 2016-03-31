@@ -10,9 +10,9 @@ using System.Windows;
 [assembly: AssemblyTitle("SpeedwayClientWpf")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("RunSum LLC")]
 [assembly: AssemblyProduct("SpeedwayClientWpf")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2016")]
+[assembly: AssemblyCopyright("Copyright © RunSum LLC 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
