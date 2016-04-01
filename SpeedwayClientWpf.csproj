@@ -96,8 +96,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DelegateCommand.cs" />
-    <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\INotifyPropertyChanged.cs" />
     <Compile Include="ViewModels\ListenerViewModel.cs" />
     <Compile Include="MainWindow.xaml.cs">

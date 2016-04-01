@@ -1,21 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
-namespace SpeedwayClientWpf
+namespace SpeedwayClientWpf.ViewModels
 {
-    public class DelegateCommand : ICommand, INotifyPropertyChanged
+    /// <summary>
+    /// Provides an ICommand whose delegates do not take any parameters for Execute() and CanExecute()
+    /// </summary>
+    public class DelegateCommand : ViewModelBase, ICommand
     {
-        // Fields
-        private Func<object, bool> _canExecute;
-        private Action<object> _execute;
-        private Func<string> _getUiName;
-        private Func<Visibility> _getVisibility;
+        private readonly Func<object, bool> _canExecute;
+        private readonly Action<object> _execute;
+        private readonly Func<string> _getUiName;
+        private readonly Func<Visibility> _getVisibility;
 
         public bool CanProvideUiName
         {
@@ -27,7 +25,6 @@ namespace SpeedwayClientWpf
             get { return _getVisibility != null; }
         }
 
-        // Events
         public virtual event EventHandler CanExecuteChanged
         {
             add
@@ -45,12 +42,7 @@ namespace SpeedwayClientWpf
                 }
             }
         }
-
-        private DelegateCommand()
-        {
-        }
-
-
+        
         public DelegateCommand(Action execute, Func<bool> canExecute = null, Func<string> getUiName = null, Func<Visibility> getVisibility = null)
         {
             if (execute == null)
@@ -61,24 +53,6 @@ namespace SpeedwayClientWpf
             this._canExecute = parameter => canExecute == null || canExecute();
             _getUiName = getUiName;
             _getVisibility = getVisibility;
-        }
-
-
-
-        public static DelegateCommand Create<ParameterType>(Action<ParameterType> execute, Predicate<ParameterType> canExecute = null, Func<string> getUiName = null)
-        {
-            if (execute == null)
-            {
-                throw new ArgumentNullException("execute");
-            }
-
-            DelegateCommand delegateCommand = new DelegateCommand();
-
-            delegateCommand._execute = (paramater) => execute((ParameterType)paramater);
-            delegateCommand._canExecute = (paramater) => canExecute == null || canExecute(paramater != null ? (ParameterType)paramater : default(ParameterType));
-            delegateCommand._getUiName = getUiName;
-
-            return delegateCommand;
         }
 
         public bool CanExecute(object parameter)
@@ -111,15 +85,6 @@ namespace SpeedwayClientWpf
         public virtual Visibility Visibility
         {
             get { return _getVisibility(); }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        public void OnPropertyChanged(string propertyName)
-        {
-            if (PropertyChanged == null)
-                return;
-            PropertyChangedEventArgs propertyChangedEventArgs = new PropertyChangedEventArgs(propertyName);
-            PropertyChanged(this, propertyChangedEventArgs);
         }
     }
 }

@@ -11,12 +11,33 @@ using System.Windows.Input;
 
 namespace SpeedwayClientWpf.ViewModels
 {
+    /// <summary>
+    /// Represents our server to broadcast tags
+    /// </summary>
     public class ListenerViewModel : ViewModelBase
     {
+        public static ManualResetEvent MyEvent = new ManualResetEvent(false);
+
+        // List of connected clients
+        private readonly List<Socket> _sockets = new List<Socket>();
+
+        private string _ipAddress;
         private TcpListener _listener;
+        private string _port;
+
+        public ListenerViewModel()
+        {
+            StartListeningCommand = new DelegateCommand(StartListening, () => !IsListening);
+            StopListeningCommand = new DelegateCommand(StopListening, () => IsListening);
+        }
+
         public bool IsListening { get; set; }
         public ICommand StartListeningCommand { get; set; }
         public ICommand StopListeningCommand { get; set; }
+
+        /// <summary>
+        /// IP Address which user selects from the combobox
+        /// </summary>
         public string IpAddress
         {
             get
@@ -34,6 +55,25 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
+        /// <summary>
+        /// Port to listen
+        /// </summary>
+        public string Port
+        {
+            get
+            {
+                int i;
+                if (int.TryParse(_port, out i))
+                    return _port;
+                // default value = 23
+                return "23";
+            }
+            set { _port = value; }
+        }
+
+        /// <summary>
+        /// List of IP Addresses of current computer
+        /// </summary>
         public IList<string> Ips
         {
             get
@@ -43,38 +83,14 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
-        public string Port
-        {
-            get
-            {
-                int i;
-                if (int.TryParse(_port, out i))
-                    return _port;
-
-                return "23";
-            }
-            set { _port = value; }
-        }
-
-        public ListenerViewModel()
-        {
-            StartListeningCommand = new DelegateCommand(StartListening, () => !IsListening);
-            StopListeningCommand = new DelegateCommand(StopListening, () => IsListening);
-        }
-
-        public static ManualResetEvent MyEvent = new ManualResetEvent(false);
-
-        List<Socket> sockets = new List<Socket>();
-        private string _ipAddress;
-        private string _port;
-
         public void StartListening()
         {
             var localEp = new IPEndPoint(IPAddress.Parse(IpAddress), int.Parse(Port));
-            PushMessage("Local address and port : " + localEp, LogMessageType.Listener);
+            PushMessage("Local address and port : " + localEp);
 
             _listener = new TcpListener(localEp);
 
+            // start new thread listening for connections
             Task.Factory.StartNew(() =>
             {
                 try
@@ -86,26 +102,30 @@ namespace SpeedwayClientWpf.ViewModels
                     {
                         MyEvent.Reset();
 
-                        PushMessage(string.Format("Connected {0} clients.", sockets.Count), LogMessageType.Listener);
-                        PushMessage("Waiting for a connection...", LogMessageType.Listener);
-                        _listener.BeginAcceptSocket(new AsyncCallback(AcceptCallback), _listener);
+                        PushMessage(string.Format("Connected {0} clients.", _sockets.Count));
+                        PushMessage("Waiting for a connection...");
                         
+                        _listener.BeginAcceptSocket(AcceptCallback, _listener);
+
+                        // Waiting for Set()
                         MyEvent.WaitOne();
                     }
-                    
-                    foreach (var handler in sockets)
+
+                    // disconnecting all clients
+                    foreach (Socket handler in _sockets)
                     {
                         handler.Shutdown(SocketShutdown.Both);
                         handler.Close();
                     }
 
                     _listener.Stop();
-                    sockets.Clear();
-                    PushMessage("Listener stopped.", LogMessageType.Listener);
+                    _sockets.Clear();
+                    PushMessage("Listener stopped.");
                 }
                 catch (Exception e)
                 {
                     PushMessage("ERROR: " + e.Message, LogMessageType.Error);
+                    Trace.TraceError("Error listening clients. " + e.Message + e.StackTrace);
                     IsListening = false;
                 }
             }
@@ -115,22 +135,41 @@ namespace SpeedwayClientWpf.ViewModels
         public void StopListening()
         {
             IsListening = false;
+            // proceed to disconnect
             MyEvent.Set();
         }
-        public void AcceptCallback(IAsyncResult ar)
+
+        /// <summary>
+        /// Sends tag messages to connected clients
+        /// </summary>
+        /// <param name="outputToNetwork"></param>
+        public void SendMessage(string outputToNetwork)
         {
-            if(! IsListening) return;
+            CheckSockets();
+            _sockets.ForEach(s => Send(s, outputToNetwork));
+        }
+
+        #region private
+        private void AcceptCallback(IAsyncResult ar)
+        {
+            if (! IsListening) return;
             try
             {
-                var listener = (TcpListener)ar.AsyncState;
+                // Retrieve the socket from the state object
+                var listener = (TcpListener) ar.AsyncState;
+
+                // Complete accepting the incoming connection
                 Socket handler = listener.EndAcceptSocket(ar);
 
-                PushMessage("Client connected : " + handler.RemoteEndPoint, LogMessageType.Listener);
+                PushMessage("Client connected : " + handler.RemoteEndPoint);
 
-                sockets.ForEach(s => Send(s, string.Format("Client connected: {0} \r\n", handler.RemoteEndPoint)));
+                // Notify all clients about new connection accepted
+                _sockets.ForEach(s => Send(s, string.Format("Client connected: {0} \r\n", handler.RemoteEndPoint)));
                 CheckSockets();
 
-                sockets.Add(handler);
+                _sockets.Add(handler);
+                
+                // Proceed to listening
                 MyEvent.Set();
             }
             catch (Exception exception)
@@ -140,26 +179,28 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
+        /// <summary>
+        /// Check if connection is available
+        /// </summary>
         private void CheckSockets()
         {
-            for (int i = sockets.Count - 1; i >= 0; i--)
+            for (int i = _sockets.Count - 1; i >= 0; i--)
             {
-                if (!sockets[i].Connected)
-                    sockets.RemoveAt(i);
+                if (!_sockets[i].Connected)
+                    _sockets.RemoveAt(i);
             }
         }
-
-
+        
         private void Send(Socket handler, String data)
         {
-            // Convert the string data to byte data using ASCII encoding.
+            // Convert the string data to byte data using ASCII encoding
             byte[] byteData = Encoding.ASCII.GetBytes(data);
 
             try
             {
-                // Begin sending the data to the remote device.
+                // Begin sending the data to the remote device
                 handler.BeginSend(byteData, 0, byteData.Length, 0,
-                    new AsyncCallback(SendCallback), handler);
+                    SendCallback, handler);
             }
             catch (Exception e)
             {
@@ -172,13 +213,12 @@ namespace SpeedwayClientWpf.ViewModels
         {
             try
             {
-                // Retrieve the socket from the state object.
-                Socket handler = (Socket)ar.AsyncState;
+                // Retrieve the socket from the state object
+                var handler = (Socket) ar.AsyncState;
 
-                // Complete sending the data to the remote device.
+                // Complete sending the data to the remote device
                 int bytesSent = handler.EndSend(ar);
-                PushMessage(string.Format("Sent {0} bytes to client ({1}).", bytesSent, handler.RemoteEndPoint),
-                    LogMessageType.Listener);
+                PushMessage(string.Format("Sent {0} bytes to client ({1}).", bytesSent, handler.RemoteEndPoint));
             }
             catch (Exception e)
             {
@@ -187,10 +227,10 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
-        public void SendMessage(string outputToNetwork)
+        private void PushMessage(string text)
         {
-            CheckSockets();
-            sockets.ForEach(s => Send(s, outputToNetwork));
+            base.PushMessage(text, LogMessageType.Listener);
         }
+        #endregion
     }
 }

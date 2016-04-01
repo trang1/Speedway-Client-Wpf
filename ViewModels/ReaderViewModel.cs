@@ -20,7 +20,12 @@ namespace SpeedwayClientWpf.ViewModels
     {
         private TcpClient _client;
         bool _connected;
-        bool _connecting;
+        bool _connecting; 
+        private readonly object _locker = new Object();
+        private string _currentTime;
+        private DateTime _timeToSet;
+        private ConnectionInfo _connectionInfo;
+        
         int _counter;
         readonly char[] _delimiterChars = { ',' };
         public string Name { get; set; }
@@ -45,6 +50,17 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("TimeToSet");
             }
         }
+
+        bool Connecting
+        {
+            get { return _connecting; }
+            set
+            {
+                _connecting = value;
+                OnPropertyChanged("ConnectButtonContent");
+                App.Current.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
+            }
+        }
         public bool Connected
         {
             get
@@ -56,7 +72,7 @@ namespace SpeedwayClientWpf.ViewModels
                 _connected = value;
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("ConnectButtonContent");
-                App.Current.Dispatcher.Invoke(new Action(CommandManager.InvalidateRequerySuggested));
+                App.Current.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
             }
         }
         public ICommand ConnectCommand { get; set; }
@@ -71,7 +87,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             get
             {
-                if (_connecting) return "Connecting";
+                if (Connecting) return "Connecting";
                 return Connected ? "Disconnect" : "Connect";
             }
         }
@@ -80,7 +96,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             ReaderControl = new ReaderControl {DataContext = this};
             ConnectCommand = new DelegateCommand(Connect, 
-                () => Connected || (!Connected && IsEndPointValid() && !_connecting));
+                () => Connected || (!Connected && IsEndPointValid() && !Connecting));
             UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
             SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
             //Task.Factory.StartNew(CheckConnection);
@@ -181,8 +197,7 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 _client = new TcpClient();
                 _client.BeginConnect(IPAddress.Parse(IpAddress), int.Parse(Port), ConnectedCallback, null);
-                _connecting = true;
-                OnPropertyChanged("ConnectButtonContent");
+                Connecting = true;
             }
             else
             {
@@ -194,7 +209,7 @@ namespace SpeedwayClientWpf.ViewModels
         {
             try
             {
-                _connecting = false;
+                Connecting = false;
                 _client.EndConnect(ar);
             }
             catch (Exception exception)
@@ -295,10 +310,6 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
-        private readonly object _locker = new Object();
-        private string _currentTime;
-        private DateTime _timeToSet;
-        private ConnectionInfo _connectionInfo;
         public void WriteToFile(string text)
         {
             var folder = MainWindowViewModel.Instance.FolderPath;
