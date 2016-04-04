@@ -9,7 +9,7 @@
         Icon="Rfid-Tag.ico"
         Background="DarkGray">
     <Window.Resources>
-        <viewModels:TypeToColorConverter x:Key="TypeToColorConverter" />
+        <speedwayClientWpf:TypeToColorConverter x:Key="TypeToColorConverter" />
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>

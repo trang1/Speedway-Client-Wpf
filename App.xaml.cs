@@ -16,6 +16,7 @@ namespace SpeedwayClientWpf
     {
         static App()
         {
+            // Initialize and start our tracer
             Tracer.StartTracing();
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;

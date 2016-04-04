@@ -11,6 +11,9 @@ using Application = System.Windows.Application;
 
 namespace SpeedwayClientWpf.ViewModels
 {
+    /// <summary>
+    /// Represents the viewModel for MainWindow
+    /// </summary>
     public class MainWindowViewModel : ViewModelBase
     {
         #region private members
@@ -22,6 +25,9 @@ namespace SpeedwayClientWpf.ViewModels
         private bool _addDateToOutput;
         private bool _addReaderInfoToOutput;
 
+        /// <summary>
+        /// Shows a dialog to choose a folder to save the files
+        /// </summary>
         private void SelectFolderPath()
         {
             var dialog = new FolderBrowserDialog
@@ -36,6 +42,9 @@ namespace SpeedwayClientWpf.ViewModels
                 FolderPath = dialog.SelectedPath;
         }
 
+        /// <summary>
+        /// Saves settings to the app.config file
+        /// </summary>
         private void SaveSettings()
         {
             ConfigHelper.Set("TagFilter", TagFilter);
@@ -47,6 +56,10 @@ namespace SpeedwayClientWpf.ViewModels
             ConfigHelper.Set("AddReaderInfoToOutput", AddReaderInfoToOutput.ToString());
             ConfigHelper.SaveReaders(Readers);
         }
+
+        /// <summary>
+        /// Loads settings from the app.config file
+        /// </summary>
         private void LoadSettings()
         {
             TagFilter = ConfigHelper.Get("TagFilter");
@@ -95,11 +108,17 @@ namespace SpeedwayClientWpf.ViewModels
             get { return _mainWindowViewModel; }
         }
 
+        /// <summary>
+        /// Our broadcast server
+        /// </summary>
         public ListenerViewModel ListenerViewModel
         {
             get { return _listenerViewModel; }
         }
 
+        /// <summary>
+        /// Folder to save the output files
+        /// </summary>
         public string FolderPath
         {
             get { return _folderPath; }
@@ -113,6 +132,9 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
+        /// <summary>
+        /// Some string to filter tags
+        /// </summary>
         public string TagFilter
         {
             get { return _tagFilter; }
@@ -122,6 +144,10 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("TagFilter");
             }
         }
+
+        /// <summary>
+        /// Time to check if tag was seen before, seconds
+        /// </summary>
         public int RereadTime
         {
             get { return _rereadTime; }
@@ -131,6 +157,10 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("RereadTime");
             }
         }
+
+        /// <summary>
+        /// Add date to the file output
+        /// </summary>
         public bool AddDateToOutput
         {
             get
@@ -143,18 +173,24 @@ namespace SpeedwayClientWpf.ViewModels
                 OnPropertyChanged("AddDateToOutput");
             }
         }
+
+        /// <summary>
+        /// Add reader id & antenna id to the file output
+        /// </summary>
         public bool AddReaderInfoToOutput
         {
-            get
-            {
-                return _addReaderInfoToOutput;
-            }
+            get { return _addReaderInfoToOutput; }
             set
             {
                 _addReaderInfoToOutput = value;
                 OnPropertyChanged("AddReaderInfoToOutput");
             }
         }
+
+        /// <summary>
+        /// Adds a message to the log window. If the count of the messages is more than 1000, we should clear the list.
+        /// </summary>
+        /// <param name="logMessage"></param>
         public void PushMessage(LogMessage logMessage)
         {
             Messages.Insert(0, logMessage);
@@ -163,7 +199,14 @@ namespace SpeedwayClientWpf.ViewModels
                 Messages.Clear();
         }
 
+        /// <summary>
+        /// Collection of reader infos
+        /// </summary>
         public ObservableCollection<ReaderViewModel> Readers { get; set; } 
+        
+        /// <summary>
+        /// Collection of the messages in the log window
+        /// </summary>
         public ObservableCollection<LogMessage> Messages { get; set; }
 
         public ICommand ExitCommand { get; set; }

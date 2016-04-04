@@ -3,10 +3,10 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace SpeedwayClientWpf.ViewModels
+namespace SpeedwayClientWpf
 {
     /// <summary>
-    /// Represents the object in log window
+    /// Represents the object in the log window
     /// </summary>
     public class LogMessage
     {
@@ -20,6 +20,9 @@ namespace SpeedwayClientWpf.ViewModels
         }
     }
 
+    /// <summary>
+    /// Source of LogMessage
+    /// </summary>
     public enum LogMessageType
     {
         Common = 0,
@@ -28,6 +31,9 @@ namespace SpeedwayClientWpf.ViewModels
         Error = 3
     }
 
+    /// <summary>
+    /// Converts type of message to font color
+    /// </summary>
     public class TypeToColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -47,6 +53,7 @@ namespace SpeedwayClientWpf.ViewModels
                         return new SolidColorBrush(Colors.Red);
                 }
             }
+            //default color
             return new SolidColorBrush(Colors.Black);
         }
 

@@ -8,6 +8,7 @@
         <SolidColorBrush x:Key="GroupBoxBcg" Color="#FFD7D2C4" />
         <SolidColorBrush x:Key="GroupBoxHeaderBcg" Color="WhiteSmoke" />
 
+        <!-- Style for all GroupBoxes in our application -->
         <Style TargetType="{x:Type GroupBox}">
             <Setter Property="Width" Value="Auto"/>
             <Setter Property="Height" Value="Auto"/>
@@ -66,6 +67,7 @@
             </Setter>
         </Style>
         
+        <!-- Style for all TextBlocks in our application -->
         <Style TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
