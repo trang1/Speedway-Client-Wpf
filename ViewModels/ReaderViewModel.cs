@@ -16,6 +16,9 @@ using System.Globalization;
 
 namespace SpeedwayClientWpf.ViewModels
 {
+    /// <summary>
+    /// Encapsulates presentation logic and state for each reader in the application
+    /// </summary>
     public class ReaderViewModel : ViewModelBase
     {
         private TcpClient _client;
@@ -24,33 +27,15 @@ namespace SpeedwayClientWpf.ViewModels
         private readonly object _locker = new Object();
         private string _currentTime;
         private DateTime _timeToSet;
+        // SSH connection information
         private ConnectionInfo _connectionInfo;
-        
+        // a timer to update current time 
+        private Timer _timer;
+        // a counter which is added to the network message
         int _counter;
         readonly char[] _delimiterChars = { ',' };
-        public string Name { get; set; }
-        public string IpAddress { get; set; }
-        public string Port { get; set; }
 
-        public string CurrentTime
-        {
-            get { return _currentTime; }
-            set
-            {
-                _currentTime = value;
-                OnPropertyChanged("CurrentTime");
-            }
-        }
-        public DateTime TimeToSet
-        {
-            get { return _timeToSet; }
-            set
-            {
-                _timeToSet = value;
-                OnPropertyChanged("TimeToSet");
-            }
-        }
-
+        //the connecion process has been started but not finished yet
         bool Connecting
         {
             get { return _connecting; }
@@ -61,6 +46,51 @@ namespace SpeedwayClientWpf.ViewModels
                 App.Current.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
             }
         }
+
+        #region Public properties
+        /// <summary>
+        /// Name of the reader
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// IpAddress
+        /// </summary>
+        public string IpAddress { get; set; }
+
+        /// <summary>
+        /// Port
+        /// </summary>
+        public string Port { get; set; }
+
+        /// <summary>
+        /// Current time captured from the reader
+        /// </summary>
+        public string CurrentTime
+        {
+            get { return _currentTime; }
+            set
+            {
+                _currentTime = value;
+                OnPropertyChanged("CurrentTime");
+            }
+        }
+        /// <summary>
+        /// Time we want to set inside the reader
+        /// </summary>
+        public DateTime TimeToSet
+        {
+            get { return _timeToSet; }
+            set
+            {
+                _timeToSet = value;
+                OnPropertyChanged("TimeToSet");
+            }
+        }
+
+        /// <summary>
+        /// Connection status
+        /// </summary>
         public bool Connected
         {
             get
@@ -75,14 +105,11 @@ namespace SpeedwayClientWpf.ViewModels
                 App.Current.Dispatcher.Invoke(CommandManager.InvalidateRequerySuggested);
             }
         }
-        public ICommand ConnectCommand { get; set; }
-        public ICommand UpdateTimeCommand { get; set; }
-        public ICommand SetTimeCommand { get; set; }
-        private Timer _timer;
-
-        Dictionary<int, int> _tags = new Dictionary<int, int>();  // this dictionary holds tag reads. It is used to save tag reads, so that the tag will not report if read again before x seconds have elapsed. The form will need a field to set this seconds value.
-            
+        // a control to encapsulate the UI and UI logic 
         public ReaderControl ReaderControl { get; set; }
+        /// <summary>
+        /// Button content changes depending on the connection state
+        /// </summary>
         public string ConnectButtonContent
         {
             get
@@ -92,6 +119,16 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
+        public ICommand ConnectCommand { get; set; }
+        public ICommand UpdateTimeCommand { get; set; }
+        public ICommand SetTimeCommand { get; set; }
+
+        #endregion
+               
+        // this dictionary holds tag reads. It is used to save tag reads, 
+        // so that the tag will not report if read again before x seconds have elapsed.
+        Dictionary<int, int> _tags = new Dictionary<int, int>();  
+       
         public ReaderViewModel()
         {
             ReaderControl = new ReaderControl {DataContext = this};
@@ -100,6 +137,7 @@ namespace SpeedwayClientWpf.ViewModels
             UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
             SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
             //Task.Factory.StartNew(CheckConnection);
+
             _timer = new Timer(o =>
             {
                 if (Connected)
@@ -109,7 +147,7 @@ namespace SpeedwayClientWpf.ViewModels
 
             TimeToSet = DateTime.Now;
         }
-
+        
         #region SSH methods
         private void SetTime()
         {
@@ -126,7 +164,7 @@ namespace SpeedwayClientWpf.ViewModels
                     sshclient.Disconnect();
                 }
                 UpdateTime();
-                PushMessage(string.Format("Time for {0} successfully set.", Name), LogMessageType.Reader);
+                PushMessage(string.Format("Time for {0} successfully set.", Name));
             }
             catch (Exception exception)
             {
@@ -146,15 +184,15 @@ namespace SpeedwayClientWpf.ViewModels
                     sshclient.Connect();
                     using (var command = sshclient.CreateCommand("show system summary"))
                     {
-                        var str = "Status = '0,Success' \r\n" +
+                        /*var str = "Status = '0,Success' \r\n" +
                             "SysDesc = 'Speedway R220'\r\n" +
                             "SysContact = 'unknown'\r\n" +
                             "SysName = 'SpeedwayR-11-32-30'\r\n" +
                             "SysLocation = 'unknown'\r\n" +
-                            "SysTime = 'Wed Mar 23 07:35:13 UTC 2016'\r\n";
-                        //var result = command.Execute();
+                            "SysTime = 'Wed Mar 23 07:35:13 UTC 2016'\r\n";*/
+                        var result = command.Execute();
 
-                        var line = new List<string>(str.Split('\n')).
+                        var line = new List<string>(result.Split('\n')).
                             FirstOrDefault(s => s.ToLower().Contains("systime"));
                         var date = line.Split('=')[1].Trim('\r',' ', '\'');
                         DateTime dt;
@@ -163,8 +201,8 @@ namespace SpeedwayClientWpf.ViewModels
                             dt = DateTime.ParseExact(date,"ddd MMM dd HH:mm:ss UTC yyyy", 
                                 CultureInfo.InvariantCulture);
                             CurrentTime = dt.ToString("HH:mm:ss");
+                            PushMessage(Name + ": current time updated.");
                         }
-
                     }
 
                     sshclient.Disconnect();
@@ -180,15 +218,44 @@ namespace SpeedwayClientWpf.ViewModels
 
         #endregion
 
+        #region private
         private bool IsEndPointValid()
         {
             if (string.IsNullOrEmpty(IpAddress) || string.IsNullOrEmpty(Port))
                 return false;
 
             int port;
+            // check if ipAddress is valid
             Match match = Regex.Match(IpAddress, 
                 @"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
             return match.Success && int.TryParse(Port, out port);
+        }
+
+        // writing the output message to a file
+        private void WriteToFile(string text)
+        {
+            var folder = MainWindowViewModel.Instance.FolderPath;
+            if (string.IsNullOrEmpty(folder)) return;
+
+            try
+            {
+                var fileName = Path.Combine(folder, IpAddress + ".txt");
+
+                lock (_locker)
+                {
+                    using (var file = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read))
+                    using (var writer = new StreamWriter(file, Encoding.Unicode))
+                    {
+                        writer.WriteLine(text);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                var error = string.Format("{0}: error writing to file. {1}", Name, exception.Message);
+                PushMessage(error, LogMessageType.Error);
+                Trace.TraceError(error + exception.StackTrace);
+            }
         }
 
         private void Connect()
@@ -220,8 +287,7 @@ namespace SpeedwayClientWpf.ViewModels
                 return;
             }
 
-            PushMessage(string.Format("{0} connected successfully to {1}", Name, _client.Client.RemoteEndPoint),
-                LogMessageType.Reader);
+            PushMessage(string.Format("{0} connected successfully to {1}", Name, _client.Client.RemoteEndPoint));
             Connected = true;
             _connectionInfo = new ConnectionInfo(IpAddress, 22, "root", 
                 new PasswordAuthenticationMethod("root", "impinj"));
@@ -242,7 +308,7 @@ namespace SpeedwayClientWpf.ViewModels
                     }
                     catch (Exception exception)
                     {
-                        PushMessage(Name + " disconnected.", LogMessageType.Reader);
+                        PushMessage(Name + " disconnected.");
                         Trace.TraceError(Name + " disconnected. " + exception.Message + exception.StackTrace);
 
                         Connected = false;
@@ -254,8 +320,7 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void ProcessMessage(string message)
         {
-            PushMessage(string.Format("Data received from {0}: {1}", Name, message.TrimEnd('\r', '\n')),
-                            LogMessageType.Reader);
+            PushMessage(string.Format("Data received from {0}: {1}", Name, message.TrimEnd('\r', '\n')));
 
             try
             {
@@ -309,30 +374,11 @@ namespace SpeedwayClientWpf.ViewModels
                 Trace.TraceError(error + exception.StackTrace);
             }
         }
-
-        public void WriteToFile(string text)
+        #endregion
+                
+        void PushMessage(string message)
         {
-            var folder = MainWindowViewModel.Instance.FolderPath;
-            if(string.IsNullOrEmpty(folder)) return;
-
-            try
-            {
-                var fileName = Path.Combine(folder, IpAddress + ".txt");
-
-                lock (_locker)
-                {
-                    using (var file = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read))
-                    using (var writer = new StreamWriter(file, Encoding.Unicode))
-                    {
-                        writer.WriteLine(text);
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                var error = string.Format("{0}: error writing to file. {1}", Name, exception.Message);
-                Trace.TraceError(error + exception.StackTrace);
-            }
+            PushMessage(message, LogMessageType.Reader);
         }
     }
 }
