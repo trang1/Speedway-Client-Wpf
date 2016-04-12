@@ -127,23 +127,29 @@ namespace SpeedwayClientWpf.ViewModels
                
         // this dictionary holds tag reads. It is used to save tag reads, 
         // so that the tag will not report if read again before x seconds have elapsed.
-        Dictionary<int, int> _tags = new Dictionary<int, int>();  
-       
+        Dictionary<int, int> _tags = new Dictionary<int, int>();
+
         public ReaderViewModel()
         {
-            ReaderControl = new ReaderControl {DataContext = this};
-            ConnectCommand = new DelegateCommand(Connect, 
+            ReaderControl = new ReaderControl { DataContext = this };
+            ConnectCommand = new DelegateCommand(Connect,
                 () => Connected || (!Connected && IsEndPointValid() && !Connecting));
-            UpdateTimeCommand= new DelegateCommand(UpdateTime, () => Connected);
-            SetTimeCommand = new DelegateCommand(SetTime, ()=> Connected);
+            UpdateTimeCommand = new DelegateCommand(UpdateTime, () => Connected);
+            SetTimeCommand = new DelegateCommand(SetTime, () => Connected);
             //Task.Factory.StartNew(CheckConnection);
 
             _timer = new Timer(o =>
             {
+            TimeToSet = DateTime.Now;
                 if (Connected)
-                    UpdateTime();
-                TimeToSet = DateTime.Now;
-            }, null, 60000, 60000);
+                {
+                    if (TimeToSet.Second == 0)
+                        UpdateTime();
+                    else if(CurrentTime != null)
+                        CurrentTime = DateTime.ParseExact(CurrentTime, "HH:mm:ss", 
+                            CultureInfo.InvariantCulture).AddSeconds(1).ToString("HH:mm:ss");
+                }
+            }, null, 10000, 1000);
 
             TimeToSet = DateTime.Now;
         }
@@ -184,13 +190,14 @@ namespace SpeedwayClientWpf.ViewModels
                     sshclient.Connect();
                     using (var command = sshclient.CreateCommand("show system summary"))
                     {
-                        /*var str = "Status = '0,Success' \r\n" +
+                        var result = "Status = '0,Success' \r\n" +
                             "SysDesc = 'Speedway R220'\r\n" +
                             "SysContact = 'unknown'\r\n" +
                             "SysName = 'SpeedwayR-11-32-30'\r\n" +
                             "SysLocation = 'unknown'\r\n" +
-                            "SysTime = 'Wed Mar 23 07:35:13 UTC 2016'\r\n";*/
-                        var result = command.Execute();
+                            "SysTime = '" + DateTime.Now.ToString("ddd MMM dd HH:mm:ss UTC yyyy") + "'\r\n";
+                            //Wed Mar 23 07:35:13 UTC 2016'\r\n";
+                       // var result = command.Execute();
 
                         var line = new List<string>(result.Split('\n')).
                             FirstOrDefault(s => s.ToLower().Contains("systime"));
