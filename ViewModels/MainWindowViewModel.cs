@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Windows.Data;
 using System.Windows.Forms;
 using System.Windows.Input;
@@ -187,6 +188,7 @@ namespace SpeedwayClientWpf.ViewModels
             }
         }
 
+        public bool IsLogFiltered { get; set; }
         /// <summary>
         /// Adds a message to the log window. If the count of the messages is more than 1000, we should clear the list.
         /// </summary>
@@ -195,8 +197,10 @@ namespace SpeedwayClientWpf.ViewModels
         {
             Messages.Insert(0, logMessage);
 
-            if(Messages.Count > 1000)
+            if(Messages.Count > 100000)
                 Messages.Clear();
+
+            OnPropertyChanged("FilteredMessages");
         }
 
         /// <summary>
@@ -209,6 +213,10 @@ namespace SpeedwayClientWpf.ViewModels
         /// </summary>
         public ObservableCollection<LogMessage> Messages { get; set; }
 
+        public ObservableCollection<LogMessage> FilteredMessages
+        {
+            get { return new ObservableCollection<LogMessage>(Messages.Where(m => m.IsFiltered)); }
+        }
         public ICommand ExitCommand { get; set; }
         public ICommand SelectFolderPathCommand { get; set; }
         public ICommand SaveSettingsCommand { get; set; }

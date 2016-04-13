@@ -12,11 +12,12 @@ namespace SpeedwayClientWpf
     {
         public LogMessageType Type { get; set; }
         public string Text { get; set; }
-
-        public LogMessage(LogMessageType type, string text)
+        public bool IsFiltered { get; set; }
+        public LogMessage(LogMessageType type, string text, bool isFiltered = false)
         {
             Type = type;
             Text = string.Format("[{0}] {1}", DateTime.Now.ToLongTimeString(), text);
+            IsFiltered = isFiltered;
         }
     }
 

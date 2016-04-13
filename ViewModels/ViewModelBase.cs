@@ -13,10 +13,11 @@ namespace SpeedwayClientWpf.ViewModels
         /// </summary>
         /// <param name="text"></param>
         /// <param name="type"></param>
-        protected virtual void PushMessage(string text, LogMessageType type = LogMessageType.Common)
+        /// <param name="isFiltered"></param>
+        protected virtual void PushMessage(string text, LogMessageType type = LogMessageType.Common, bool isFiltered = false)
         {
             Application.Current.Dispatcher.Invoke(
-                () => MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text)));
+                () => MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text, isFiltered)));
         }
 
         #region INotifyPropertyChanged
