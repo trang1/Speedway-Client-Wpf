@@ -25,7 +25,7 @@ namespace SpeedwayClientWpf.ViewModels
         bool _connected;
         bool _connecting; 
         private readonly object _locker = new Object();
-        private string _currentTime;
+        private DateTime? _currentTime;
         private DateTime _timeToSet;
         // SSH connection information
         private ConnectionInfo _connectionInfo;
@@ -66,15 +66,25 @@ namespace SpeedwayClientWpf.ViewModels
         /// <summary>
         /// Current time captured from the reader
         /// </summary>
-        public string CurrentTime
+        public DateTime? CurrentTime
         {
             get { return _currentTime; }
             set
             {
                 _currentTime = value;
                 OnPropertyChanged("CurrentTime");
+                OnPropertyChanged("CurrentTimeForUser");
             }
         }
+
+        /// <summary>
+        /// Current time representation for user
+        /// </summary>
+        public string CurrentTimeForUser
+        {
+            get { return _currentTime.HasValue ? _currentTime.Value.ToString("HH:mm:ss") : default (string); }
+        }
+
         /// <summary>
         /// Time we want to set inside the reader
         /// </summary>
@@ -145,9 +155,8 @@ namespace SpeedwayClientWpf.ViewModels
                 {
                     if (TimeToSet.Second == 0)
                         UpdateTime();
-                    else if(CurrentTime != null)
-                        CurrentTime = DateTime.ParseExact(CurrentTime, "HH:mm:ss", 
-                            CultureInfo.InvariantCulture).AddSeconds(1).ToString("HH:mm:ss");
+                    else if(CurrentTime.HasValue)
+                        CurrentTime = CurrentTime.Value.AddSeconds(1);
                 }
             }, null, 10000, 1000);
 
@@ -187,15 +196,15 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 using (var sshclient = new SshClient(_connectionInfo))
                 {
-                    sshclient.Connect();
-                    using (var command = sshclient.CreateCommand("show system summary"))
+                    //sshclient.Connect();
+                    //using (var command = sshclient.CreateCommand("show system summary"))
                     {
                         var result = "Status = '0,Success' \r\n" +
                             "SysDesc = 'Speedway R220'\r\n" +
                             "SysContact = 'unknown'\r\n" +
                             "SysName = 'SpeedwayR-11-32-30'\r\n" +
                             "SysLocation = 'unknown'\r\n" +
-                            "SysTime = '" + DateTime.Now.ToString("ddd MMM dd HH:mm:ss UTC yyyy") + "'\r\n";
+                            "SysTime = '" + DateTime.Now.ToString("ddd MMM dd HH:mm:ss UTC yyyy", new CultureInfo("en-US")) + "'\r\n";
                             //Wed Mar 23 07:35:13 UTC 2016'\r\n";
                        // var result = command.Execute();
 
@@ -205,9 +214,8 @@ namespace SpeedwayClientWpf.ViewModels
                         DateTime dt;
                         if(!DateTime.TryParse(date, out dt))
                         {
-                            dt = DateTime.ParseExact(date,"ddd MMM dd HH:mm:ss UTC yyyy", 
+                            CurrentTime = DateTime.ParseExact(date, "ddd MMM dd HH:mm:ss UTC yyyy", 
                                 CultureInfo.InvariantCulture);
-                            CurrentTime = dt.ToString("HH:mm:ss");
                             PushMessage(Name + ": current time updated.");
                         }
                     }
@@ -327,8 +335,6 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void ProcessMessage(string message)
         {
-            PushMessage(string.Format("Data received from {0}: {1}", Name, message.TrimEnd('\r', '\n')));
-
             try
             {
                 string[] parts = message.Split(_delimiterChars);
@@ -370,6 +376,9 @@ namespace SpeedwayClientWpf.ViewModels
                         bib, epochTimeUltra, milliEpochTimeToArray,parts[0], parts[3], readerId, _counter++, Environment.NewLine);
 
                     _tags[bib] = epochTimeToArray;
+
+                    PushMessage(string.Format("Data received from {0}: {1}", Name, message.TrimEnd('\r', '\n')), LogMessageType.Reader, true);
+
                     WriteToFile(outputToFile);
                     MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
                 }
