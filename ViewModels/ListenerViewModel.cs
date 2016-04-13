@@ -79,7 +79,7 @@ namespace SpeedwayClientWpf.ViewModels
             get
             {
                 IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-                return ipHostInfo.AddressList.Select(i => i.ToString()).ToList();
+                return ipHostInfo.AddressList.Where(i => !i.IsIPv6LinkLocal).Select(i => i.ToString()).ToList();
             }
         }
 
