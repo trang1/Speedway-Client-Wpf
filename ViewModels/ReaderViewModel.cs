@@ -150,7 +150,9 @@ namespace SpeedwayClientWpf.ViewModels
 
             _timer = new Timer(o =>
             {
-            TimeToSet = DateTime.Now;
+                if(!MainWindowViewModel.Instance.Settings.UpdateReadersTimeManually)
+                    TimeToSet = DateTime.Now;
+
                 if (Connected)
                 {
                     if (TimeToSet.Second == 0)
@@ -196,17 +198,18 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 using (var sshclient = new SshClient(_connectionInfo))
                 {
-                    //sshclient.Connect();
-                    //using (var command = sshclient.CreateCommand("show system summary"))
+                    sshclient.Connect();
+                    using (var command = sshclient.CreateCommand("show system summary"))
                     {
-                        var result = "Status = '0,Success' \r\n" +
-                            "SysDesc = 'Speedway R220'\r\n" +
-                            "SysContact = 'unknown'\r\n" +
-                            "SysName = 'SpeedwayR-11-32-30'\r\n" +
-                            "SysLocation = 'unknown'\r\n" +
-                            "SysTime = '" + DateTime.Now.ToString("ddd MMM dd HH:mm:ss UTC yyyy", new CultureInfo("en-US")) + "'\r\n";
-                            //Wed Mar 23 07:35:13 UTC 2016'\r\n";
-                       // var result = command.Execute();
+                        /*    var result = "Status = '0,Success' \r\n" +
+                                "SysDesc = 'Speedway R220'\r\n" +
+                                "SysContact = 'unknown'\r\n" +
+                                "SysName = 'SpeedwayR-11-32-30'\r\n" +
+                                "SysLocation = 'unknown'\r\n" +
+                                "SysTime = '" + DateTime.Now.ToString("ddd MMM dd HH:mm:ss UTC yyyy", new CultureInfo("en-US")) + "'\r\n";
+                                //Wed Mar 23 07:35:13 UTC 2016'\r\n";
+                           */
+                        var result = command.Execute();
 
                         var line = new List<string>(result.Split('\n')).
                             FirstOrDefault(s => s.ToLower().Contains("systime"));

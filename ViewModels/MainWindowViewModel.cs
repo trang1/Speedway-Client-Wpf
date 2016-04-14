@@ -114,8 +114,8 @@ namespace SpeedwayClientWpf.ViewModels
         {
             Messages.Insert(0, logMessage);
 
-            if (Messages.Count > 100000)
-                Messages.Clear();
+           // if (Messages.Count > 100000)
+           //     Messages.Clear();
 
             OnPropertyChanged("FilteredMessages");
         }

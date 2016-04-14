@@ -105,13 +105,14 @@
                     <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Add date to output" IsChecked="{Binding AddDateToOutput}" Margin="5"/>
 
                     <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Add reader id &amp; antenna to output" IsChecked="{Binding AddReaderInfoToOutput}" Margin="5"/>
+
+                    <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="Update reader's time manually" IsChecked="{Binding UpdateReadersTimeManually}" Margin="5"/>
                     
-                    <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="Play sound for all reads" IsChecked="{Binding PlaySoundForRead}" Margin="5"/>
+                    <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Play sound for all reads" IsChecked="{Binding PlaySoundForRead}" Margin="5"/>
 
-                    <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Play sound for filtered reads" IsChecked="{Binding PlaySoundForFilteredRead}" Margin="5"/>
+                    <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Content="Play sound for filtered reads" IsChecked="{Binding PlaySoundForFilteredRead}" Margin="5"/>
 
-                    <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Content="Update reader's time manually" IsChecked="{Binding UpdateReadersTimeManually}" Margin="5"/>
-                </Grid>    
+                    </Grid>    
             </GroupBox>
 
             <GroupBox Header="Logging" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Margin="1">
