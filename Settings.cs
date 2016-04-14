@@ -17,6 +17,7 @@ namespace SpeedwayClientWpf
         private bool _playSoundForRead;
         private int _rereadTime;
         private string _tagFilter;
+        private bool _updateReadersTimeManually;
 
         public Settings()
         {
@@ -117,6 +118,19 @@ namespace SpeedwayClientWpf
             }
         }
 
+        /// <summary>
+        /// Can user set dateTime for readers manually 
+        /// </summary>
+        public bool UpdateReadersTimeManually
+        {
+            get { return _updateReadersTimeManually; }
+            set
+            {
+                _updateReadersTimeManually = value;
+                OnPropertyChanged("UpdateReadersTimeManually");
+            }
+        }
+
         public ICommand SelectFolderPathCommand { get; set; }
 
         /// <summary>
@@ -147,6 +161,7 @@ namespace SpeedwayClientWpf
             ConfigHelper.Set("AddReaderInfoToOutput", AddReaderInfoToOutput.ToString());
             ConfigHelper.Set("PlaySoundForRead", PlaySoundForRead.ToString());
             ConfigHelper.Set("PlaySoundForFilteredRead", PlaySoundForFilteredRead.ToString());
+            ConfigHelper.Set("UpdateReadersTimeManually", UpdateReadersTimeManually.ToString());
         }
 
         /// <summary>
@@ -160,6 +175,7 @@ namespace SpeedwayClientWpf
             AddReaderInfoToOutput = bool.Parse(ConfigHelper.Get("AddReaderInfoToOutput"));
             PlaySoundForRead = bool.Parse(ConfigHelper.Get("PlaySoundForRead"));
             PlaySoundForFilteredRead = bool.Parse(ConfigHelper.Get("PlaySoundForFilteredRead"));
+            UpdateReadersTimeManually = bool.Parse(ConfigHelper.Get("UpdateReadersTimeManually"));
 
             int rereadtime;
             if (int.TryParse(ConfigHelper.Get("RereadTime"), out rereadtime))
