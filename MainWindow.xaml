@@ -3,10 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:speedwayClientWpf="clr-namespace:SpeedwayClientWpf"
         xmlns:viewModels="clr-namespace:SpeedwayClientWpf.ViewModels"
-        Title="Speedway RFID Connector v0.5" Height="500" Width="900"
+        Title="Speedway RFID Connector v0.6" Height="550" Width="900"
         MinHeight="400" MinWidth="600"
         DataContext="{x:Static viewModels:MainWindowViewModel.Instance}"
-        Icon="Rfid-Tag.ico"
+        Icon="Resources/Rfid-Tag.ico"
         Background="DarkGray">
     <Window.Resources>
         <speedwayClientWpf:TypeToColorConverter x:Key="TypeToColorConverter" />
@@ -18,7 +18,7 @@
         </Grid.RowDefinitions>
         <Menu>
             <MenuItem Header="File" >
-                <MenuItem Header="Save settings" Command="{Binding SaveSettingsCommand}"/>
+                <MenuItem Header="Save current state" Command="{Binding SaveStateCommand}"/>
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"/>
             </MenuItem>
             <MenuItem Header="Help">
@@ -73,9 +73,11 @@
                 </Grid>
             </GroupBox>
 
-            <GroupBox Header="Settings" Grid.Row="2" Margin="1" >
+            <GroupBox Header="Settings" Grid.Row="2" Margin="1" DataContext="{Binding Settings}">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -102,6 +104,10 @@
                     <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="Add date to output" IsChecked="{Binding AddDateToOutput}" Margin="5"/>
 
                     <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="Add reader id &amp; antenna to output" IsChecked="{Binding AddReaderInfoToOutput}" Margin="5"/>
+                    
+                    <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="Play sound for all reads" IsChecked="{Binding PlaySoundForRead}" Margin="5"/>
+
+                    <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Play sound for filtered reads" IsChecked="{Binding PlaySoundForFilteredRead}" Margin="5"/>
                 </Grid>    
             </GroupBox>
 
@@ -112,35 +118,36 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <RadioButton GroupName="Log" Content="Show all reads" Margin="5" IsChecked="True" Name="Rdb1"/>
+                        <RadioButton GroupName="Log" Content="Show all messages" Margin="5" IsChecked="True" Name="Rdb1"/>
                         <RadioButton GroupName="Log" Content="Show only filtered reads" Margin="5" IsChecked="{Binding IsLogFiltered}" Name="Rdb2"/>
                     </StackPanel>
+                    
                     <ListBox Grid.Row="1" Grid.ColumnSpan="2"  Margin="3" >
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Text}" Foreground="{Binding Type, Converter={StaticResource TypeToColorConverter}}"
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Text}" Foreground="{Binding Type, Converter={StaticResource TypeToColorConverter}}"
                                        FontWeight="Bold" ToolTip="{Binding Text}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                         <ListBox.Style>
                             <Style>
                                 <Style.Triggers>
                                     <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding ElementName=Rdb1,Path=IsChecked}" Value="True"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="ListBox.ItemsSource" Value="{Binding Messages}" />
-                            </MultiDataTrigger>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding ElementName=Rdb2,Path=IsChecked}" Value="True"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="ListBox.ItemsSource" Value="{Binding FilteredMessages}" />
-                            </MultiDataTrigger>
-                        </Style.Triggers>
-                                </Style>
-                            </ListBox.Style>
-                </ListBox>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding ElementName=Rdb1,Path=IsChecked}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="ListBox.ItemsSource" Value="{Binding Messages}" />
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding ElementName=Rdb2,Path=IsChecked}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="ListBox.ItemsSource" Value="{Binding FilteredMessages}" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.Style>
+                    </ListBox>
                 </Grid>
             </GroupBox>
         </Grid>

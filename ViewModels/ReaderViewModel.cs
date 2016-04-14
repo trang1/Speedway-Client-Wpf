@@ -249,7 +249,7 @@ namespace SpeedwayClientWpf.ViewModels
         // writing the output message to a file
         private void WriteToFile(string text)
         {
-            var folder = MainWindowViewModel.Instance.FolderPath;
+            var folder = MainWindowViewModel.Instance.Settings.FolderPath;
             if (string.IsNullOrEmpty(folder)) return;
 
             try
@@ -319,7 +319,13 @@ namespace SpeedwayClientWpf.ViewModels
                         var message = sr.ReadLine();
 
                         if (message != null)
+                        {
+                            PushMessage(string.Format("{0} message received: {1}", Name, message));
                             Task.Factory.StartNew(() => ProcessMessage(message));
+                            
+                            if(MainWindowViewModel.Instance.Settings.PlaySoundForRead)
+                                SoundHelper.PlayReadSound();
+                        }
                     }
                     catch (Exception exception)
                     {
@@ -337,6 +343,8 @@ namespace SpeedwayClientWpf.ViewModels
         {
             try
             {
+                var settings = MainWindowViewModel.Instance.Settings;
+
                 string[] parts = message.Split(_delimiterChars);
                 string bibHex = parts[1]; // sometimes the EPC hex is too long. Get the last 7 of hex
                 if (bibHex.Length > 7)
@@ -344,17 +352,13 @@ namespace SpeedwayClientWpf.ViewModels
                     bibHex = bibHex.Substring(bibHex.Length - 7);
                 }
                 int bib = Convert.ToInt32(bibHex, 16);
-                var tagFilter = MainWindowViewModel.Instance.TagFilter;
-                var rereadTime = MainWindowViewModel.Instance.RereadTime;
-                var addDateToOutput = MainWindowViewModel.Instance.AddDateToOutput;
-                var addReaderInfoToOutput = MainWindowViewModel.Instance.AddReaderInfoToOutput;
 
                 int epochTimeToArray = Convert.ToInt32(parts[2].Substring(0, 10)); //extract epoch time
 
-                if ((string.IsNullOrEmpty(tagFilter) ||
-                     (!string.IsNullOrEmpty(tagFilter) && bib.ToString().Contains(tagFilter))) &&
+                if ((string.IsNullOrEmpty(settings.TagFilter) ||
+                     (!string.IsNullOrEmpty(settings.TagFilter) && bib.ToString().Contains(settings.TagFilter))) &&
                     // This filter EPC tags based on the filter given in the form.
-                    (!_tags.ContainsKey(bib) || (_tags.ContainsKey(bib) && _tags[bib] + rereadTime <= epochTimeToArray)))
+                    (!_tags.ContainsKey(bib) || (_tags.ContainsKey(bib) && _tags[bib] + settings.RereadTime <= epochTimeToArray)))
                 {
                     int epochTimeUltra = epochTimeToArray - 312768000; // convert the time ??
                     int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3)); // peel of the milliseconds
@@ -363,13 +367,13 @@ namespace SpeedwayClientWpf.ViewModels
                     long etime = Convert.ToInt64(ettime);
                     var epoch =
                         new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime)
-                            .ToString(addDateToOutput ? "yyyy-MM-dd HH:mm:ss.fff" : "HH:mm:ss.fff");
+                            .ToString(settings.AddDateToOutput ? "yyyy-MM-dd HH:mm:ss.fff" : "HH:mm:ss.fff");
                     var readerId = IpAddress.Split('.')[3];
 
                     string outputToFile = string.Format("{0},{1},0,\"{2}\"",
                         parts[0], bib, epoch);
 
-                    if (addReaderInfoToOutput)
+                    if (settings.AddReaderInfoToOutput)
                         outputToFile = string.Format("{0},{1},{2}", outputToFile, readerId, parts[0]);
                     
                     string outputToNetwork = string.Format("0,{0},{1},{2},{3},{4},0,0,{5},0000000000000000,0,{6}{7}",
@@ -377,10 +381,13 @@ namespace SpeedwayClientWpf.ViewModels
 
                     _tags[bib] = epochTimeToArray;
 
-                    PushMessage(string.Format("Data received from {0}: {1}", Name, message.TrimEnd('\r', '\n')), LogMessageType.Reader, true);
+                    PushMessage(string.Format("{0} filtered data: {1}", Name, outputToFile), LogMessageType.Reader, true);
 
                     WriteToFile(outputToFile);
                     MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
+
+                    if (settings.PlaySoundForFilteredRead)
+                        SoundHelper.PlayFilteredReadSound();
                 }
             }
             catch (Exception exception)

@@ -49,7 +49,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>Rfid-Tag.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\Rfid-Tag.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Loya.Dameer">
@@ -85,6 +85,8 @@
       <DependentUpon>ReaderControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="LogMessage.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="SoundHelper.cs" />
     <Compile Include="Tracer.cs" />
     <Compile Include="ViewModels\ReaderViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
@@ -140,7 +142,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Rfid-Tag.ico" />
+    <Resource Include="Resources\Rfid-Tag.ico" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -158,6 +160,14 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\01.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\02.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
