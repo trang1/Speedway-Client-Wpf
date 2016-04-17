@@ -16,8 +16,7 @@ namespace SpeedwayClientWpf.ViewModels
         /// <param name="isFiltered"></param>
         protected virtual void PushMessage(string text, LogMessageType type = LogMessageType.Common, bool isFiltered = false)
         {
-            Application.Current.Dispatcher.Invoke(
-                () => MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text, isFiltered)));
+            MainWindowViewModel.Instance.PushMessage(new LogMessage(type, text, isFiltered));
         }
 
         #region INotifyPropertyChanged

@@ -1,5 +1,8 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 
@@ -15,7 +18,8 @@ namespace SpeedwayClientWpf.ViewModels
         private static readonly MainWindowViewModel _mainWindowViewModel = new MainWindowViewModel();
         private readonly ListenerViewModel _listenerViewModel;
         private readonly Settings _settings;
-
+        private Timer _timer;
+        private List<LogMessage> _messagesQueue;
         #endregion
 
         #region Constructor
@@ -24,8 +28,10 @@ namespace SpeedwayClientWpf.ViewModels
         {
             _listenerViewModel = new ListenerViewModel();
             Messages = new ObservableCollection<LogMessage>();
+            FilteredMessages = new ObservableCollection<LogMessage>();
+            _messagesQueue = new List<LogMessage>();
             _settings = new Settings();
-
+            _timer = new Timer(LogCallback, null, 1, 1);
             /* Readers = new ObservableCollection<ReaderViewModel>
             {
                 new ReaderViewModel {Name = "Reader 1", Port = "14150"},
@@ -61,6 +67,20 @@ namespace SpeedwayClientWpf.ViewModels
             ConfigHelper.SaveReaders(Readers);
         }
 
+        private void LogCallback(object state)
+        {
+            lock (_messagesQueue)
+            {
+                Application.Current.Dispatcher.Invoke(delegate
+                {
+                    foreach (var message in _messagesQueue)
+                    {
+                        Messages.Insert(0, message);
+                    }
+                    _messagesQueue.Clear();
+                }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
         #endregion
 
         #region public members
@@ -92,12 +112,8 @@ namespace SpeedwayClientWpf.ViewModels
         ///     Collection of the messages in the log window
         /// </summary>
         public ObservableCollection<LogMessage> Messages { get; set; }
-
-        public ObservableCollection<LogMessage> FilteredMessages
-        {
-            get { return new ObservableCollection<LogMessage>(Messages.Where(m => m.IsFiltered)); }
-        }
-
+        public ObservableCollection<LogMessage> FilteredMessages { get; set; }
+        
         public Settings Settings
         {
             get { return _settings; }
@@ -106,18 +122,27 @@ namespace SpeedwayClientWpf.ViewModels
         public ICommand ExitCommand { get; set; }
         public ICommand SaveStateCommand { get; set; }
 
+
+
         /// <summary>
         ///     Adds a message to the log window. If the count of the messages is more than 100000, we should clear the list.
         /// </summary>
         /// <param name="logMessage"></param>
         public void PushMessage(LogMessage logMessage)
         {
-            Messages.Insert(0, logMessage);
+            lock(_messagesQueue)
+            {
+                _messagesQueue.Add(logMessage);
+            }
 
-           // if (Messages.Count > 100000)
+            if (logMessage.IsFiltered)
+                Application.Current.Dispatcher.Invoke(new System.Action(() =>
+                    FilteredMessages.Insert(0, logMessage)));
+
+           // if (Messages.Count > 10000)
            //     Messages.Clear();
 
-            OnPropertyChanged("FilteredMessages");
+           // OnPropertyChanged("FilteredMessages");
         }
 
         #endregion

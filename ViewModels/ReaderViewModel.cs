@@ -219,7 +219,7 @@ namespace SpeedwayClientWpf.ViewModels
                         {
                             CurrentTime = DateTime.ParseExact(date, "ddd MMM dd HH:mm:ss UTC yyyy", 
                                 CultureInfo.InvariantCulture);
-                            PushMessage(Name + ": current time updated.");
+                            PushMessage(Name + ": current time refreshed.");
                         }
                     }
 

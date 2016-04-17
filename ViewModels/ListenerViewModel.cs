@@ -86,8 +86,7 @@ namespace SpeedwayClientWpf.ViewModels
         public void StartListening()
         {
             var localEp = new IPEndPoint(IPAddress.Parse(IpAddress), int.Parse(Port));
-            PushMessage("Local address and port : " + localEp);
-
+            
             _listener = new TcpListener(localEp);
 
             // start new thread listening for connections
@@ -95,6 +94,7 @@ namespace SpeedwayClientWpf.ViewModels
             {
                 try
                 {
+                    PushMessage("Local address and port : " + localEp);
                     _listener.Start();
                     IsListening = true;
 
