@@ -1,10 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace SpeedwayClientWpf.ViewModels
 {
@@ -69,18 +72,20 @@ namespace SpeedwayClientWpf.ViewModels
 
         private void LogCallback(object state)
         {
-            lock (_messagesQueue)
-            {
-                Application.Current.Dispatcher.Invoke(delegate
+            if (_messagesQueue.Count > 0)
+                lock (_messagesQueue)
                 {
-                    foreach (var message in _messagesQueue)
+                    Application.Current.Dispatcher.Invoke(delegate
                     {
-                        Messages.Insert(0, message);
-                    }
-                    _messagesQueue.Clear();
-                }, System.Windows.Threading.DispatcherPriority.Background);
-            }
+                        foreach (var message in _messagesQueue)
+                        {
+                            Messages.Insert(0, message);
+                        }
+                        _messagesQueue.Clear();
+                    }, DispatcherPriority.Background);
+                }
         }
+
         #endregion
 
         #region public members
@@ -122,27 +127,28 @@ namespace SpeedwayClientWpf.ViewModels
         public ICommand ExitCommand { get; set; }
         public ICommand SaveStateCommand { get; set; }
 
-
-
         /// <summary>
         ///     Adds a message to the log window. If the count of the messages is more than 100000, we should clear the list.
         /// </summary>
         /// <param name="logMessage"></param>
         public void PushMessage(LogMessage logMessage)
         {
-            lock(_messagesQueue)
+            Task.Factory.StartNew(() =>
             {
-                _messagesQueue.Add(logMessage);
-            }
+                lock (_messagesQueue)
+                {
+                    _messagesQueue.Add(logMessage);
+                }
 
-            if (logMessage.IsFiltered)
-                Application.Current.Dispatcher.Invoke(new System.Action(() =>
-                    FilteredMessages.Insert(0, logMessage)));
+                if (logMessage.IsFiltered)
+                    Application.Current.Dispatcher.Invoke((() =>
+                        FilteredMessages.Insert(0, logMessage)));
+            });
 
-           // if (Messages.Count > 10000)
-           //     Messages.Clear();
+            // if (Messages.Count > 10000)
+            //     Messages.Clear();
 
-           // OnPropertyChanged("FilteredMessages");
+            // OnPropertyChanged("FilteredMessages");
         }
 
         #endregion

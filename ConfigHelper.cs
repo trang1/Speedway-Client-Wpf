@@ -114,7 +114,6 @@ namespace SpeedwayClientWpf
                     catch (Exception exception)
                     {
                         string error = "ERROR getting readers settings from config. " + exception.Message;
-
                         MainWindowViewModel.Instance.PushMessage(new LogMessage(LogMessageType.Error, error));
                         Trace.TraceError(error + exception.StackTrace);
                     }

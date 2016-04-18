@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using SpeedwayClientWpf.ViewModels;
 
@@ -16,16 +18,48 @@ namespace SpeedwayClientWpf
     /// </summary>
     public static class SoundHelper
     {
+        private static Timer _timer;
+        private static IList<String> _playList;
+        private static string ReadSoundFilePath;
+        private static string FilteredReadSoundFilePath;
+        static SoundHelper()
+        {
+            _timer = new Timer(TimerCallback, null, 1000, 200);
+            _playList = new List<string>();
+            ReadSoundFilePath = ConfigurationManager.AppSettings["ReadSoundFilePath"];
+            FilteredReadSoundFilePath = ConfigurationManager.AppSettings["FilteredReadSoundFilePath"];
+        }
+
+        private static void TimerCallback(object state)
+        {
+            lock (_playList)
+            {
+                foreach (var file in _playList)
+                {
+                    Task.Factory.StartNew(() => Play2(file));
+                }
+                _playList.Clear();
+            }
+        }
+
         public static void PlayReadSound()
         {
-            var path = ConfigurationManager.AppSettings["ReadSoundFilePath"];
-            Play(path, SystemSounds.Beep);
+            Task.Factory.StartNew(() =>
+            {
+                lock (_playList)
+                    if (!_playList.Contains(ReadSoundFilePath))
+                        _playList.Add(ReadSoundFilePath);
+            });
         }
 
         public static void PlayFilteredReadSound()
         {
-            var path = ConfigurationManager.AppSettings["FilteredReadSoundFilePath"];
-            Play(path, SystemSounds.Exclamation);
+            Task.Factory.StartNew(() =>
+            {
+                lock (_playList)
+                    if (!_playList.Contains(FilteredReadSoundFilePath))
+                        _playList.Add(FilteredReadSoundFilePath);
+            });
         }
 
         private static void Play(string filePath, SystemSound alternativeSound)
@@ -51,6 +85,39 @@ namespace SpeedwayClientWpf
             {
                 alternativeSound.Play();
             }
+        }
+
+        [DllImport("winmm.dll")]
+        private static extern Int32 mciSendString(string command, StringBuilder buffer, int bufferSize,
+            IntPtr hwndCallback);
+
+        private static void Play2(string filePath)
+        {
+            var track = Path.GetFileName(filePath);
+            StringBuilder sb = new StringBuilder();
+            mciSendString("open \"" + filePath + "\" alias " + track, sb, 0, IntPtr.Zero);
+            mciSendString("play " + track, sb, 0, IntPtr.Zero);
+            var isBeingPlayed = true;
+            //loop
+            sb = new StringBuilder();
+            mciSendString("status " + track + " length", sb, 255, IntPtr.Zero);
+            int length = Convert.ToInt32(sb.ToString());
+            int pos = 0;
+            while (isBeingPlayed)
+            {
+                sb = new StringBuilder();
+                mciSendString("status " + track + " position", sb, 255, IntPtr.Zero);
+                pos = Convert.ToInt32(sb.ToString());
+                if (pos >= length)
+                {
+                    isBeingPlayed = false;
+                    break;
+                }
+          //      Player.openPlayer( AppDomain.CurrentDomain.BaseDirectory + "local.wav");
+          //      Thread.Sleep(500);
+            }
+            mciSendString("stop " + track, sb, 0, IntPtr.Zero);
+            mciSendString("close " + track, sb, 0, IntPtr.Zero);
         }
     }
 }
