@@ -31,6 +31,7 @@ namespace SpeedwayClientWpf.ViewModels
         private ConnectionInfo _connectionInfo;
         // a timer to update current time 
         private Timer _timer;
+        private int _messagesCounter;
         // a counter which is added to the network message
         int _counter;
         readonly char[] _delimiterChars = { ',' };
@@ -160,6 +161,12 @@ namespace SpeedwayClientWpf.ViewModels
                     else if(CurrentTime.HasValue)
                         CurrentTime = CurrentTime.Value.AddSeconds(1);
                 }
+                if (_messagesCounter > 0)
+                {
+                    PushMessage(Name + ": "+ _messagesCounter+" messages received");
+                    _messagesCounter = 0;
+                }
+
             }, null, 10000, 1000);
 
             TimeToSet = DateTime.Now;
@@ -323,12 +330,14 @@ namespace SpeedwayClientWpf.ViewModels
 
                         if (message != null)
                         {
-                            PushMessage(string.Format("{0} message received: {1}", Name, message));
+                            // NOTE: The main problem is here
+                            //PushMessage(string.Format("{0} message received: {1}", Name, message));
                             Task.Factory.StartNew(() => ProcessMessage(message));
                             
                             if(MainWindowViewModel.Instance.Settings.PlaySoundForRead)
                                 SoundHelper.PlayReadSound();
                             //Debug.WriteLine("Message read");
+                            _messagesCounter++;
                         }
                     }
                     catch (Exception exception)
@@ -358,48 +367,48 @@ namespace SpeedwayClientWpf.ViewModels
                 int bib = Convert.ToInt32(bibHex, 16);
 
                 int epochTimeToArray = Convert.ToInt32(parts[2].Substring(0, 10)); //extract epoch time
+                
                 lock (_tags)
                 {
-                    if ((string.IsNullOrEmpty(settings.TagFilter) ||
-                         (!string.IsNullOrEmpty(settings.TagFilter) && bib.ToString().Contains(settings.TagFilter))) &&
-                        // This filter EPC tags based on the filter given in the form.
-                        (!_tags.ContainsKey(bib) ||
-                         (_tags.ContainsKey(bib) && _tags[bib] + settings.RereadTime <= epochTimeToArray)))
-                    {
-                        int epochTimeUltra = epochTimeToArray - 312768000; // convert the time ??
-                        int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3));
-                            // peel of the milliseconds
+                    if ((!string.IsNullOrEmpty(settings.TagFilter) &&
+                         (string.IsNullOrEmpty(settings.TagFilter) || !bib.ToString().Contains(settings.TagFilter))) ||
+                        (_tags.ContainsKey(bib) &&
+                         (!_tags.ContainsKey(bib) || _tags[bib] + settings.RereadTime > epochTimeToArray))) return;
 
-                        string ettime = parts[2].Substring(0, 13);
-                        long etime = Convert.ToInt64(ettime);
-                        var epoch =
-                            new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime)
-                                .ToString(settings.AddDateToOutput ? "yyyy-MM-dd HH:mm:ss.fff" : "HH:mm:ss.fff");
-                        var readerId = IpAddress.Split('.')[3];
-
-                        string outputToFile = string.Format("{0},{1},0,\"{2}\"",
-                            parts[0], bib, epoch);
-
-                        if (settings.AddReaderInfoToOutput)
-                            outputToFile = string.Format("{0},{1},{2}", outputToFile, readerId, parts[0]);
-
-                        string outputToNetwork = string.Format(
-                            "0,{0},{1},{2},{3},{4},0,0,{5},0000000000000000,0,{6}{7}",
-                            bib, epochTimeUltra, milliEpochTimeToArray, parts[0], parts[3], readerId, _counter++,
-                            Environment.NewLine);
-
-                        _tags[bib] = epochTimeToArray;
-
-                        PushMessage(string.Format("{0} filtered data: {1}", Name, outputToFile), LogMessageType.Reader,
-                            true);
-
-                        WriteToFile(outputToFile);
-                        MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
-
-                        if (settings.PlaySoundForFilteredRead)
-                            SoundHelper.PlayFilteredReadSound();
-                    }
+                    _tags[bib] = epochTimeToArray;
                 }
+
+                int epochTimeUltra = epochTimeToArray - 312768000; // convert the time ??
+                int milliEpochTimeToArray = Convert.ToInt32(parts[2].Substring(10, 3));
+                // peel of the milliseconds
+
+                string ettime = parts[2].Substring(0, 13);
+                long etime = Convert.ToInt64(ettime);
+                var epoch =
+                    new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(etime)
+                        .ToString(settings.AddDateToOutput ? "yyyy-MM-dd HH:mm:ss.fff" : "HH:mm:ss.fff");
+                var readerId = IpAddress.Split('.')[3];
+
+                string outputToFile = string.Format("{0},{1},0,\"{2}\"",
+                    parts[0], bib, epoch);
+
+                if (settings.AddReaderInfoToOutput)
+                    outputToFile = string.Format("{0},{1},{2}", outputToFile, readerId, parts[0]);
+
+                string outputToNetwork = string.Format(
+                    "0,{0},{1},{2},{3},{4},0,0,{5},0000000000000000,0,{6}{7}",
+                    bib, epochTimeUltra, milliEpochTimeToArray, parts[0], parts[3], readerId, _counter++,
+                    Environment.NewLine);
+
+                PushMessage(string.Format("{0} filtered data: {1}", Name, outputToFile), LogMessageType.Reader,
+                    true);
+
+                WriteToFile(outputToFile);
+                MainWindowViewModel.Instance.ListenerViewModel.SendMessage(outputToNetwork);
+
+                if (settings.PlaySoundForFilteredRead)
+                    SoundHelper.PlayFilteredReadSound();
+
             }
             catch (Exception exception)
             {
