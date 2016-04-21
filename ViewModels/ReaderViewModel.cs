@@ -34,6 +34,8 @@ namespace SpeedwayClientWpf.ViewModels
         private int _messagesCounter;
         // a counter which is added to the network message
         int _counter;
+        // last message received from the reader
+        string _lastMessage;
         readonly char[] _delimiterChars = { ',' };
 
         //the connecion process has been started but not finished yet
@@ -163,7 +165,13 @@ namespace SpeedwayClientWpf.ViewModels
                 }
                 if (_messagesCounter > 0)
                 {
-                    PushMessage(Name + ": "+ _messagesCounter+" messages received");
+                    PushMessage(Name + ": " + _messagesCounter + " messages received");
+
+                    if (!string.IsNullOrEmpty(_lastMessage))
+                    {
+                        PushMessage(Name + " last message: " + _lastMessage);
+                        _lastMessage = null;
+                    }
                     _messagesCounter = 0;
                 }
 
@@ -181,13 +189,18 @@ namespace SpeedwayClientWpf.ViewModels
                 {
                     sshclient.Connect();
                     using (var command = sshclient.CreateCommand(
-                        "config system time " + TimeToSet.ToString("yyyy.MM.dd-HH:mm:ss")))
+                        // added 1 second to compensate delay
+                        "config system time " + TimeToSet.AddSeconds(1).ToString("yyyy.MM.dd-HH:mm:ss")))
                     {
                         command.Execute();
                     }
                     sshclient.Disconnect();
                 }
                 UpdateTime();
+                // we should clear tags cache to prevent wrong filtering
+                lock(_tags)
+                    _tags.Clear();
+
                 PushMessage(string.Format("Time for {0} successfully set.", Name));
             }
             catch (Exception exception)
@@ -338,6 +351,7 @@ namespace SpeedwayClientWpf.ViewModels
                                 SoundHelper.PlayReadSound();
                             //Debug.WriteLine("Message read");
                             _messagesCounter++;
+                            _lastMessage = message;
                         }
                     }
                     catch (Exception exception)

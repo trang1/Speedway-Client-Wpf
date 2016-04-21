@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Media;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SpeedwayClientWpf.ViewModels;
 
 namespace SpeedwayClientWpf
 {
@@ -22,6 +19,7 @@ namespace SpeedwayClientWpf
         private static IList<String> _playList;
         private static string ReadSoundFilePath;
         private static string FilteredReadSoundFilePath;
+
         static SoundHelper()
         {
             _timer = new Timer(TimerCallback, null, 1000, 200);
@@ -34,9 +32,10 @@ namespace SpeedwayClientWpf
         {
             lock (_playList)
             {
+                // playing all queued sounds
                 foreach (var file in _playList)
                 {
-                    Task.Factory.StartNew(() => Play2(file));
+                    Task.Factory.StartNew(() => Play(file));
                 }
                 _playList.Clear();
             }
@@ -44,54 +43,30 @@ namespace SpeedwayClientWpf
 
         public static void PlayReadSound()
         {
-            Task.Factory.StartNew(() =>
-            {
-                lock (_playList)
-                    if (!_playList.Contains(ReadSoundFilePath))
-                        _playList.Add(ReadSoundFilePath);
-            });
+            AddToPlayList(ReadSoundFilePath);
         }
 
         public static void PlayFilteredReadSound()
         {
+           AddToPlayList(FilteredReadSoundFilePath);
+        }
+        
+        // adds sound to the sound queue
+        private static void AddToPlayList(string filePath)
+        {
             Task.Factory.StartNew(() =>
             {
                 lock (_playList)
-                    if (!_playList.Contains(FilteredReadSoundFilePath))
-                        _playList.Add(FilteredReadSoundFilePath);
+                    if (!_playList.Contains(filePath))
+                        _playList.Add(filePath);
             });
-        }
-
-        private static void Play(string filePath, SystemSound alternativeSound)
-        {
-            // if .wav file cannot be played, the alternative system sound will be played
-            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-            {
-                try
-                {
-                    var player = new SoundPlayer(filePath);
-                    player.Play();
-                }
-                catch (Exception exception)
-                {
-                    var error = string.Format("Cannot play file {0}. {1}", filePath, exception.Message);
-                    MainWindowViewModel.Instance.PushMessage(new LogMessage(LogMessageType.Error, error));
-                    Trace.TraceError(error + exception.StackTrace);
-
-                    alternativeSound.Play();
-                }
-            }
-            else
-            {
-                alternativeSound.Play();
-            }
         }
 
         [DllImport("winmm.dll")]
         private static extern Int32 mciSendString(string command, StringBuilder buffer, int bufferSize,
             IntPtr hwndCallback);
 
-        private static void Play2(string filePath)
+        private static void Play(string filePath)
         {
             var track = Path.GetFileName(filePath);
             StringBuilder sb = new StringBuilder();
@@ -119,5 +94,32 @@ namespace SpeedwayClientWpf
             mciSendString("stop " + track, sb, 0, IntPtr.Zero);
             mciSendString("close " + track, sb, 0, IntPtr.Zero);
         }
+
+        // old version (not async)
+        //private static void Play_Old(string filePath, SystemSound alternativeSound)
+        //{
+        //    // if .wav file cannot be played, the alternative system sound will be played
+        //    if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+        //    {
+        //        try
+        //        {
+        //            var player = new SoundPlayer(filePath);
+        //            player.Play();
+        //        }
+        //        catch (Exception exception)
+        //        {
+        //            var error = string.Format("Cannot play file {0}. {1}", filePath, exception.Message);
+        //            MainWindowViewModel.Instance.PushMessage(new LogMessage(LogMessageType.Error, error));
+        //            Trace.TraceError(error + exception.StackTrace);
+
+        //            alternativeSound.Play();
+        //        }
+        //    }
+        //    else
+        //    {
+        //        alternativeSound.Play();
+        //    }
+        //}
+
     }
 }
